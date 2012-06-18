@@ -1,37 +1,36 @@
 package project.analysis.detrend;
 
-import project.analysis.statistics.Statistic;
-import project.analysis.statistics.WindowOnlineMean;
-
 public class Smoother implements Detrender {
 
 	private static final int DEFAULT_SPAN = 5;
-
-	private Statistic mean;
+	private int span;
 
 	public Smoother() {
 		this(DEFAULT_SPAN);
 	}
 
 	public Smoother(int span) {
-		mean = new WindowOnlineMean(span);
+		setSpan(span);
 	}
 
 	public void setSpan(int span) {
 		if (span % 2 == 0) {
 			span--;
 		}
-		mean = new WindowOnlineMean(span);
+		this.span = span;
 	}
 
-	public double[] smooth(double[] ys) {
-		double[] res = new double[ys.length];
+	private double[] smooth(double[] ys) {
+		double[] result = new double[ys.length];
 		for (int i = 0; i < ys.length; i++) {
-			mean.increment(ys[i]);
-			res[i] = mean.getResult();
+			int begin = Math.max(0, i - span);
+			int end = Math.min(ys.length, i + (i - begin) + 1);
+			double mean = 0;
+			for (int j = begin; j < end; j++)
+				mean += ys[j];
+			result[i] = mean / (end - begin);
 		}
-		mean.clear();
-		return res;
+		return result;
 	}
 
 	@Override

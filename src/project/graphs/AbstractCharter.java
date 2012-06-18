@@ -83,11 +83,12 @@ public abstract class AbstractCharter implements SeriesCharter {
 		for (Marker m : rangeMarkers) {
 			plot.addRangeMarker(m);
 		}
-		setRenderingColours(plot, false);
+		setRenderingColours(plot, true);
 		setFonts(plot, RectangleEdge.BOTTOM);
 		//setPlotSteps(plot, 5, 10);
 		//plot.setForegroundAlpha(0.6f);
-
+		//chart.removeLegend();
+		
 		ChartFrame frame = new ChartFrame("Chart window", chart);
 		frame.setSize(1500, 1400);
 		frame.addWindowListener(new WindowAdapter() {
@@ -101,12 +102,8 @@ public abstract class AbstractCharter implements SeriesCharter {
 		frame.setVisible(true);
 	}
 
-	private void setPlotSteps(XYPlot plot, double xAxis, double yAxis) {
-		((NumberAxis) plot.getRangeAxis()).setTickUnit(new NumberTickUnit(yAxis));
-		((NumberAxis) plot.getDomainAxis()).setTickUnit(new NumberTickUnit(xAxis));
-	}
-
 	private void setFonts(XYPlot plot, RectangleEdge legendPosition) {
+		
 		LegendTitle legendTitle = chart.getLegend();
 		legendTitle.setPosition(legendPosition);
 		legendTitle.setItemFont(new Font("Arial", Font.PLAIN, 28));
@@ -135,7 +132,7 @@ public abstract class AbstractCharter implements SeriesCharter {
 			for (int i = 0; i < plot.getDataset(index).getSeriesCount(); i++) {
 				renderer.setSeriesPaint(seriesIndex, colours[paintIndex]);
 				if(setBigStroke)
-					renderer.setSeriesStroke(seriesIndex, new BasicStroke(1.3f));
+					renderer.setSeriesStroke(seriesIndex, new BasicStroke(1.2f));
 				seriesIndex++;
 				paintIndex++;
 			}

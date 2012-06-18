@@ -3,24 +3,23 @@ package project.analysis;
 import java.util.Arrays;
 import java.util.Comparator;
 
-import org.apache.commons.math3.stat.descriptive.moment.Variance;
 import org.apache.commons.math3.util.FastMath;
 
 import project.analysis.statistics.WindowOnlineVariance;
 import project.utis.DescendingDoubleComparator;
 
-public class StandardDeviationSolver extends AbstractRegimeSolver {
+public class StandardDeviationSolver2 extends AbstractRegimeSolver {
 
 	private int windowSize;
 	private WindowOnlineVariance variance;
 	private RegimeStrategy strategy;
 	private int maxRegimes;
 
-	public StandardDeviationSolver() {
+	public StandardDeviationSolver2() {
 		strategy = RegimeStrategy.Buckets;
 	}
 
-	public StandardDeviationSolver(int windowSize, int maxRegimes) {
+	public StandardDeviationSolver2(int windowSize, int maxRegimes) {
 		this();
 		this.windowSize = windowSize;
 		variance = new WindowOnlineVariance(windowSize);
@@ -42,8 +41,7 @@ public class StandardDeviationSolver extends AbstractRegimeSolver {
 	@Override
 	public double[] solve(double[] xs, double[] ys) {
 		if (xs.length != ys.length)
-			throw new IllegalArgumentException("Lengths of data must be the same: XS: " + xs.length + "  Ys: "
-					+ ys.length);
+			throw new IllegalArgumentException("Lengths of data must be the same: XS: " + xs.length + "  Ys: " + ys.length);
 		if (variance == null) {
 			if (variance == null) {
 				windowSize = (int) Math.max(5, xs.length * 0.05);
@@ -52,52 +50,48 @@ public class StandardDeviationSolver extends AbstractRegimeSolver {
 		}
 		if (maxRegimes == 0)
 			maxRegimes = 10;
-		double[] stdLeft = new double[ys.length];
-		double[] stdRight = new double[ys.length];
-		stdLeft[0] = stdRight[ys.length - 1] = 0;
-		Variance var = new Variance();
+		double[] weights = new double[ys.length];
+		int length = weights.length;
+		weights[0] = weights[ys.length - 1] = 0;
+		Integer[] indexes = new Integer[ys.length];
 		for (int i = ys.length - 1; i > ys.length - 1 - windowSize && i > 0; i--) {
 			variance.increment(ys[i]);
-			var.increment(ys[i]);
-			stdRight[i - 1] = FastMath.sqrt(variance.getResult());
+			weights[i - 1] = FastMath.sqrt(variance.getResult());
 		}
 		variance.clear();
 		for (int i = 0; i < windowSize && i + 1 < ys.length; i++) {
+			indexes[i] = i;
 			variance.increment(ys[i]);
-			stdLeft[i + 1] = FastMath.sqrt(variance.getResult());
+			weights[i + 1] = FastMath.sqrt(variance.getResult());
 		}
 		for (int i = windowSize; i < ys.length - 1; i++) {
-			variance.increment(ys[i]);
-			var.increment(ys[i]);
-			double res = FastMath.sqrt(variance.getResult());
-			stdLeft[i + 1] = res;
-			int leftindex = i - windowSize;
-			stdRight[leftindex] = res;
-		}
-		double[] weights = new double[ys.length];
-		// gather indexes for sorting
-		Integer[] indexes = new Integer[ys.length];
-		int length = weights.length;
-		double maxWeight = 0.0;
-		for (int i = 0; i < length; i++) {
 			indexes[i] = i;
-			if (stdLeft[i] == 0 || stdRight[i] == 0) {
-				weights[i] = 0;
+			variance.increment(ys[i]);
+			double currentVariance = FastMath.sqrt(variance.getResult());
+			if (i + 1 > ys.length - 1 - (windowSize + 1)) {
+				double rightVariance = weights[i + 1];
+				if (rightVariance > 0) {
+					weights[i + 1] = calculateMeasure(currentVariance, rightVariance, windowSize, length - i - 2);
+				}
 			}
 			else {
-				int leftPoints = FastMath.min(i, windowSize);
-				int rightPoints = FastMath.min(length - i - 1, windowSize);
-				double l = stdLeft[i];
-				double r = stdRight[i];
-				double diff = FastMath.abs(leftPoints - rightPoints);
-				double k = 1.0 - diff / windowSize;
-				double weight = k * FastMath.max(stdLeft[i] / stdRight[i], stdRight[i] / stdLeft[i]);
-				maxWeight = weight > maxWeight ? weight : maxWeight;
-				weights[i] = k * FastMath.max(stdLeft[i] / stdRight[i], stdRight[i] / stdLeft[i]);
+				weights[i + 1] = currentVariance;
+			}
+			int leftIndex = i - windowSize;
+			double leftVariance = weights[leftIndex];
+			if (leftVariance > 0) {
+				weights[leftIndex] = calculateMeasure(leftVariance, currentVariance, FastMath.min(leftIndex, windowSize), windowSize);
 			}
 		}
+		indexes[ys.length - 1] = ys.length - 1;
 		variance.clear();
 		return getResult(xs, indexes, weights);
+	}
+
+	private double calculateMeasure(double leftStdDev, double rightStdDev, int leftPoints, int rightPoints) {
+		double diff = FastMath.abs(leftPoints - rightPoints);
+		double k = 1.0 - diff / windowSize;
+		return k * FastMath.max(leftStdDev / rightStdDev, rightStdDev / leftStdDev);
 	}
 
 	private double[] getResult(double[] xs, Integer[] indexes, double[] weights) {

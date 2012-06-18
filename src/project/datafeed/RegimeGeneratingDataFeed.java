@@ -1,6 +1,10 @@
 package project.datafeed;
 
+import java.util.Random;
+
 import org.apache.commons.math3.distribution.NormalDistribution;
+
+import project.analysis.Regime;
 
 public class RegimeGeneratingDataFeed implements DataFeed {
 
@@ -9,16 +13,21 @@ public class RegimeGeneratingDataFeed implements DataFeed {
 	private int index;
 	private double[] regimePoints;
 	private int maxRegimes;
+	private Regime[] regimes;
 
 	public RegimeGeneratingDataFeed() {
 		this(2);
 	}
 
 	public RegimeGeneratingDataFeed(int regimes) {
-		this(regimes, (regimes+1)*1000);
+		this(regimes, (regimes + 1) * 1000);
 	}
-	
-	public double[] getRegimePoints(){
+
+	public Regime[] getRegimes() {
+		return regimes;
+	}
+
+	public double[] getRegimePoints() {
 		return regimePoints;
 	}
 
@@ -28,8 +37,9 @@ public class RegimeGeneratingDataFeed implements DataFeed {
 		dataPoints = numPoints;
 		index = 0;
 		regimePoints = new double[regimes];
-		for(int i = 0;  i < regimes; i ++){
-			regimePoints[i] = (i+1)*window;
+		this.regimes = new Regime[maxRegimes + 1];
+		for (int i = 0; i < regimes; i++) {
+			regimePoints[i] = (i + 1) * window;
 		}
 	}
 
@@ -41,27 +51,36 @@ public class RegimeGeneratingDataFeed implements DataFeed {
 	@Override
 	public double[][] getAllValues() throws DataFeedException {
 		double[][] result = new double[dataPoints][2];
-		double highVariance = 8;
-		double lowVariance = 1;
-		NormalDistribution low = new NormalDistribution(0, lowVariance);
-		NormalDistribution high = new NormalDistribution(0, highVariance);
-
-		NormalDistribution rand = low;
+		Random rand = new Random();
+		double mean = rand.nextDouble() * 15;
+		double stdDev = rand.nextDouble() * 3;
+		boolean low = true;
+		NormalDistribution dist = new NormalDistribution(mean, stdDev);
 		int pointCount = 0;
 		int regimes = 0;
 		for (; index < dataPoints; index++) {
 			result[index][0] = index;
-			result[index][1] = rand.sample();
+			result[index][1] = dist.sample();
 			pointCount++;
 			if (pointCount >= window && regimes < maxRegimes) {
+				this.regimes[regimes] = new Regime(mean, stdDev, (regimes + 1) * window);
 				regimes++;
 				pointCount = 0;
-				if (rand == low)
-					rand = high;
-				else
-					rand = low;
+				if (low) {
+					mean = rand.nextDouble() * 15;
+					stdDev = 5 + rand.nextDouble() * 5;
+					dist = new NormalDistribution(mean, stdDev);
+				}
+				else {
+					mean = rand.nextDouble() * 15;
+					stdDev = rand.nextDouble() * 3;
+					dist = new NormalDistribution(mean, stdDev);
+
+				}
+				low = !low;
 			}
 		}
+		this.regimes[maxRegimes] = new Regime(mean, stdDev, dataPoints);
 		return result;
 	}
 

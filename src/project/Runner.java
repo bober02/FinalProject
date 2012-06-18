@@ -2,10 +2,7 @@ package project;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Random;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.apache.commons.math3.distribution.ChiSquaredDistribution;
 import org.apache.commons.math3.distribution.NormalDistribution;
@@ -16,10 +13,12 @@ import org.jfree.data.function.Function2D;
 import org.jfree.data.function.NormalDistributionFunction2D;
 
 import project.analysis.BayesianSolver;
+import project.analysis.Regime;
 import project.analysis.RegimeSolver;
 import project.analysis.RegimeStrategy;
 import project.analysis.SolverGraph;
 import project.analysis.StandardDeviationSolver;
+import project.analysis.StandardDeviationSolver2;
 import project.analysis.detrend.Detrender;
 import project.analysis.detrend.DetrenderGraph;
 import project.analysis.detrend.DifferenceDetrender;
@@ -97,53 +96,47 @@ public class Runner {
 		// this.showGaussianHistogram();
 		// this.showChiFunctions();
 		// this.showGaussianFuntions();
-		this.showData();
+		// this.showData();
 		// this.smoothDetrendAnalysis();
 		// this.detrendAnalysis();
-		// measureSolverSpeed();
+		// measureSolverSpeed(1000000, 100);
 		// this.testRealData();
 		// this.testSyntheticData();
-		// this.showSynteticDataResults();
+		 this.showSynteticDataResults();
 		// this.compareVariancePerformance(100000, 0.01);
 		// testLikelihoodsEquality();
 		// this.generateTrend();
 	}
 
-	public void smoothDetrendAnalysis() throws DataFeedException {
-		String table = Tables.SP2;
-		DataFeed df = dfBuilder.forTable(table).includeDays().includeSettle().build();
-		double[][] values = DataUtils.transpose(df.getAllValues());
-		double[] xs = values[0];
-		double[] ys = values[1];
-		dataCharter.addSeries("Original Data", xs, ys);
-		double[] detrendYs;
-		Smoother smooth = new Smoother(10);
-		detrendYs = smooth.detrend(xs, ys);
-		dataCharter.addSeries("5 points span", xs, detrendYs);
-
-		smooth = new Smoother(50);
-		detrendYs = smooth.detrend(xs, ys);
-		dataCharter.addSeries("31 points span", xs, detrendYs);
-
-		smooth = new Smoother(200);
-		detrendYs = smooth.detrend(xs, ys);
-		dataCharter.addSeries("100 points span", xs, detrendYs);
-		dataCharter.showChart(Tables.getTableName(table) + " smoothing", "Time (days", "Asset price");
+	public void testRealData() throws DataFeedException {
+		int maxRegimes = 5;
+		int window = 100;
+		Detrender detrender = differenceDetrender;
+		RegimeStrategy strategy = RegimeStrategy.TopN;
+		stdSolver = new StandardDeviationSolver(window, maxRegimes);
+		stdSolver.setStrategy(strategy);
+		StandardDeviationSolver2 stdSolver2 = new StandardDeviationSolver2(window, maxRegimes);
+		stdSolver2.setStrategy(strategy);
+		for (String table : Tables.getTables()) {
+			DataFeed df = dfBuilder.forTable(table).includeDays().includeSettle().build();
+			SolverGraph graph = new SolverGraph(stdSolver, new DoubleSeriesCharter(), log);
+			graph.addDetrender(detrender);
+			String title = "Regimes: " + strategy + " for " + table + " using " + window + " window";
+			//graph.solveAndPlot(df, title, true);
+		}
+		strategy = RegimeStrategy.Buckets;
+		stdSolver2.setStrategy(strategy);
+		stdSolver.setStrategy(strategy);
+		for (String table : Tables.getTables()) {
+			DataFeed df = dfBuilder.forTable(table).includeDays().includeSettle().build();
+			SolverGraph graph = new SolverGraph(stdSolver, new DoubleSeriesCharter(), log);
+			graph.addDetrender(detrender);
+			String title = "Regimes: " + strategy + " for " + "DowJones" + " using " + window + " window";
+			graph.solveAndPlot(df, title, true);
+		}
 	}
-
-	public void detrendAnalysis() {
-		String table = Tables.Corn;
-		DataFeed df = dfBuilder.forTable(table).includeDays().includeSettle().build();
-
-		DetrenderGraph smooth = new DetrenderGraph(new DoubleSeriesCharter(), log, differenceDetrender);
-		smooth.detrendAndPlot(df, Tables.getTableName(table) + " with single differcing", true, false);
-
-		df.reset();
-		smooth = new DetrenderGraph(new DoubleSeriesCharter(), log, differenceDetrender);
-		smooth.addDetrender(new DifferenceDetrender());
-		smooth.detrendAndPlot(df, Tables.getTableName(table) + " with double differencing", true, false);
-	}
-
+	
+	
 	public void showSynteticDataResults() {
 		RegimeGeneratingDataFeed df = new RegimeGeneratingDataFeed(2);
 		// RegimeSolver solver = new StandardDeviationSolver(200, 5);
@@ -151,6 +144,7 @@ public class Runner {
 		SolverGraph graph = new SolverGraph(solver, dataCharter, log);
 		// graph.addDetrender(differenceDetrender);
 		graph.solveAndPlot(df, "Syntethic regime test", true);
+		Regime[] regimes = df.getRegimes();
 	}
 
 	public void testSyntheticData() throws DataFeedException {
@@ -204,68 +198,74 @@ public class Runner {
 		System.out.println("Mean: " + meanError / trials);
 	}
 
-	public void generateTrend() {
-		int points = 50;
-		int cutoff = 35;
-		double[] ys = new double[2 * points];
-		double[] xs = new double[2 * points];
-		Random r = new Random();
-		double value = 0.0;
-		double mult = 1.0;
-		for (int i = 0; i <= cutoff; i++) {
-			value += mult * r.nextDouble();
-			ys[i] = value;
-			xs[i] = i;
-			mult *= 1 + r.nextDouble() / 7;
+
+
+	public void measureSolverSpeed(int size, int numTrials) throws DataFeedException {
+		dataCharter.beginNewPointSeries("Solver speed", false);
+		int maxRegimes = 3;
+		int window = 1000;
+
+		StandardDeviationSolver stdSolver = new StandardDeviationSolver(window, maxRegimes);
+		BayesianSolver bayesSolver = new BayesianSolver();
+		StandardDeviationSolver2 stdSolver2 = new StandardDeviationSolver2();
+		Timer timer = new Timer();
+		double time = 0;
+		for (int i = 0; i <= numTrials; i++) {
+			DataFeed df = new RegimeGeneratingDataFeed(maxRegimes, size);
+			double[][] values = DataUtils.transpose(df.getAllValues());
+			timer.start();
+			stdSolver.solve(values[0], values[1]);
+			timer.stop();
+			time += timer.getTimeElapsed();
 		}
-		xs[cutoff + 1] = cutoff + 1;
-		ys[cutoff + 1] = value - 0.5;
-		for (int i = cutoff + 2; i < 2 * points; i++) {
-			value += -1.5 * r.nextDouble();
-			ys[i] = value;
-			xs[i] = i;
-		}
-		dataCharter.addDomainMarker(cutoff);
-		dataCharter.addSeries("Trend Data", xs, ys);
-		dataCharter.showChart("Trend in data", "Time (days)", "Asset price");
+		System.out.println(size + "   ,   " + time / numTrials);
 	}
 
-	public void testRealData() {
-		int maxRegimes = 5;
-		int window = 500;
-		Detrender detrender = differenceDetrender;
-		RegimeStrategy strategy = RegimeStrategy.TopN;
-		stdSolver = new StandardDeviationSolver(window, maxRegimes);
-		stdSolver.setStrategy(strategy);
-		for (String table : Tables.getTables()) {
-			DataFeed df = dfBuilder.forTable(table).includeDays().includeSettle().build();
-			SolverGraph graph = new SolverGraph(bayesSolver, new DoubleSeriesCharter(), log);
-			graph.addDetrender(detrender);
-			String title = "Regimes: " + strategy + " for " + table + " using " + window + " window";
-			// graph.solveAndPlot(df, title, true);
-		}
-		strategy = RegimeStrategy.Buckets;
-		stdSolver.setStrategy(strategy);
-		// for (String table : Tables.getTables()) {
-		DataFeed df = dfBuilder.forTable(Tables.DowJones).includeDays().includeSettle().build();
-		SolverGraph graph = new SolverGraph(bayesSolver, new DoubleSeriesCharter(), log);
-		// git graph.addDetrender(detrender);
-		String title = "Regimes: " + strategy + " for " + "DowJones" + " using " + window + " window";
-		graph.solveAndPlot(df, title, true);
-		// }
+	public void smoothDetrendAnalysis() throws DataFeedException {
+		String table = Tables.SP2;
+		DataFeed df = dfBuilder.forTable(table).includeDays().includeSettle().build();
+		double[][] values = DataUtils.transpose(df.getAllValues());
+		double[] xs = values[0];
+		double[] ys = values[1];
+		dataCharter.addSeries("Original Data", xs, ys);
+		double[] detrendYs;
+		Smoother smooth = new Smoother(11);
+		detrendYs = smooth.detrend(xs, ys);
+		dataCharter.addSeries("10 points span", xs, detrendYs);
+
+		smooth = new Smoother(41);
+		detrendYs = smooth.detrend(xs, ys);
+		dataCharter.addSeries("40 points span", xs, detrendYs);
+
+		smooth = new Smoother(151);
+		detrendYs = smooth.detrend(xs, ys);
+		dataCharter.addSeries("150 points span", xs, detrendYs);
+		dataCharter.showChart(Tables.getTableName(table) + " smoothing", "Time (days", "Asset price");
 	}
+
+	public void detrendAnalysis() {
+		String table = Tables.Corn;
+		DataFeed df = dfBuilder.forTable(table).includeDays().includeSettle().build();
+
+		DetrenderGraph smooth = new DetrenderGraph(new DoubleSeriesCharter(), log, differenceDetrender);
+		smooth.detrendAndPlot(df, Tables.getTableName(table) + " with first differencing", true, false);
+
+		df.reset();
+		smooth = new DetrenderGraph(new DoubleSeriesCharter(), log, differenceDetrender);
+		smooth.addDetrender(new DifferenceDetrender());
+		smooth.detrendAndPlot(df, Tables.getTableName(table) + " with second differencing", true, false);
+	}
+
 
 	public void showGaussianHistogram() throws DataFeedException {
 		// for (String table : Tables.getTables()) {
 		DataFeed df = dfBuilder.forTable(Tables.SP).includeDays().includeSettle().build();
 		double[][] data = DataUtils.transpose(df.getAllValues());
 
-		// double[] detrendedData =
-		// differenceDetrender.detrend(Arrays.copyOfRange(data[0], 0, 3460),
-		// Arrays.copyOfRange(data[1], 0, 3460));
+		double[] detrendedData = logDifferenceDetrender.detrend(Arrays.copyOfRange(data[0], 0, 3460), Arrays.copyOfRange(data[1], 0, 3460));
 		// double[] detrendedData = logDifferenceDetrender.detrend(data[0],
 		// data[1]);
-		double[] detrendedData = data[1];
+		// double[] detrendedData = data[1];
 		Mean mean = new Mean();
 		Variance variance = new Variance(false);
 		for (int i = 0; i < detrendedData.length; i++) {
@@ -275,9 +275,9 @@ public class Runner {
 		}
 		Function2D trueNormal = new NormalDistributionFunction2D(mean.getResult(), FastMath.sqrt(variance.getResult()));
 		HistogramCharter charter = new HistogramCharter();
-		charter.addFunction("Normal", trueNormal, -1000, 3000, 1000000);
-		charter.addHistogram("Log Normal returns", detrendedData, 200);
-		charter.showChart("Normal approximation", "Values", "Frequency");
+		charter.addFunction("Gaussian fit", trueNormal, -0.5, 0.5, 1000000);
+		charter.addHistogram("Data count", detrendedData, 200);
+		charter.showChart("S&P 500 data fit with logdifference detrending", "X", "P(X)");
 		// }
 
 	}
@@ -304,6 +304,32 @@ public class Runner {
 		}
 		return res;
 	}
+	
+	public void generateTrend() {
+		int points = 50;
+		int cutoff = 35;
+		double[] ys = new double[2 * points];
+		double[] xs = new double[2 * points];
+		Random r = new Random();
+		double value = 0.0;
+		double mult = 1.0;
+		for (int i = 0; i <= cutoff; i++) {
+			value += mult * r.nextDouble();
+			ys[i] = value;
+			xs[i] = i;
+			mult *= 1 + r.nextDouble() / 7;
+		}
+		xs[cutoff + 1] = cutoff + 1;
+		ys[cutoff + 1] = value - 0.5;
+		for (int i = cutoff + 2; i < 2 * points; i++) {
+			value += -1.5 * r.nextDouble();
+			ys[i] = value;
+			xs[i] = i;
+		}
+		dataCharter.addDomainMarker(cutoff);
+		dataCharter.addSeries("Trend Data", xs, ys);
+		dataCharter.showChart("Trend in data", "Time (days)", "Asset price");
+	}
 
 	public void showGaussianFuntions() {
 		int begin = -8;
@@ -318,26 +344,6 @@ public class Runner {
 		charter.addFunction("μ=0, σ=0.4", N004, begin, end, 100000);
 		charter.addFunction("μ=5, σ=2", N52, begin, end, 100000);
 		charter.showChart("Probability density function", "X", "p(X)");
-	}
-
-	public void measureSolverSpeed() throws DataFeedException {
-		dataCharter.beginNewPointSeries("Solver speed", false);
-		int maxRegimes = 3;
-		int window = 5500;
-		StandardDeviationSolver stdSolver = new StandardDeviationSolver(window, maxRegimes);
-		Timer timer = new Timer();
-		for (int i = 1; i <= 10; i++) {
-			int numPoints = i * 100000;
-			DataFeed df = new RegimeGeneratingDataFeed(maxRegimes, numPoints);
-			double[][] values = DataUtils.transpose(df.getAllValues());
-			timer.start();
-			stdSolver.solve(values[0], values[1]);
-			timer.stop();
-			double time = timer.getTimeElapsed();
-			dataCharter.addDataPoint(numPoints, time);
-			System.out.println(i);
-		}
-		dataCharter.showChart("Performance of solver", "Number of data points", "Execution time (ms)");
 	}
 
 	public void compareVariancePerformance(int dataPoints, double percentageIncrease) {

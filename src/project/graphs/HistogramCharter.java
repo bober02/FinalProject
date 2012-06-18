@@ -57,14 +57,12 @@ public class HistogramCharter {
 			}
 			setRenderingColours(plot);
 			LegendTitle legendTitle = chart.getLegend(); 
-			legendTitle.setPosition(RectangleEdge.RIGHT); 
+			legendTitle.setPosition(RectangleEdge.BOTTOM); 
 			legendTitle.setItemFont(new Font("Arial", Font.PLAIN, 28));
 			
 			Font font = new Font("Arial", Font.PLAIN, 20);
 			plot.getDomainAxis().setTickLabelFont(font);
 			plot.getRangeAxis().setTickLabelFont(font);
-			((NumberAxis)plot.getRangeAxis()).setTickUnit(new NumberTickUnit(0.1));
-			((NumberAxis)plot.getDomainAxis()).setTickUnit(new NumberTickUnit(2));
 			
 			font = new Font("Arial", Font.PLAIN, 24);
 			plot.getDomainAxis().setLabelFont(font);
@@ -89,7 +87,7 @@ public class HistogramCharter {
 			}
 			for(int i = 0; i < plot.getDataset(index).getSeriesCount(); i++ ){
 				renderer.setSeriesPaint(seriesIndex, colours[paintIndex]);
-				renderer.setSeriesStroke(seriesIndex, new BasicStroke(2.0f));
+				//renderer.setSeriesStroke(seriesIndex, new BasicStroke(2.0f));
 				seriesIndex++;
 				paintIndex++;
 			}
