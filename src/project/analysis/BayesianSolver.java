@@ -1,6 +1,7 @@
 package project.analysis;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.SortedSet;
@@ -18,20 +19,16 @@ public class BayesianSolver extends AbstractRegimeSolver {
 	private Variance leftVariance;
 	private Variance rightVariance;
 	private double confidence;
-	private int maxRegimes;
+
+
 
 	public BayesianSolver() {
-		this(Integer.MAX_VALUE);
-	}
-
-	public BayesianSolver(int maxRegimes) {
 		measures = new Measures();
 		leftVariance = new Variance(false);
 		rightVariance = new Variance(false);
 		markers = new TreeSet<Integer>();
 		chi = new ChiSquaredDistribution(2);
-		confidence = 0.0001;
-		this.maxRegimes = maxRegimes;
+		confidence = 0.000001;
 	}
 
 	private void reset() {
@@ -112,21 +109,31 @@ public class BayesianSolver extends AbstractRegimeSolver {
 				previousLikelihoods.add(maxMarker, measures.getMaxRightLikelihood());
 				previousLikelihoods.add(maxMarker, measures.getMaxLeftLikelihood());
 			}
-			finish = finish || (markers.size() - 1) >= maxRegimes;
+			
 		}
 
 		double[] res = new double[markers.size() - 1];
 		int i = 0;
 		for (Integer marker : markers) {
-			if (marker < len) {
-				res[i] = xs[marker];
+			double diff = Double.MAX_VALUE;
+			// compare against all previous regimes
+			for (int k = 0; k < i; k++) {
+				diff = FastMath.min(diff, FastMath.abs(res[k] - marker));
+			}
+			if (marker < len && diff > 0.05 * len) {
+				res[i] = marker;
 				i++;
 			}
 		}
+		res = Arrays.copyOfRange(res, 0, i);
+		for(int k=0; k < res.length; k++)
+			res[k] = xs[(int) res[k]];
 		reset();
 		return res;
 	}
 
+;
+	
 	private boolean updateMeasures(int index, int n, double[] logLikelihoods, double variance, double L0,
 			double otherSegmentsLikelihood, boolean fromLeft) {
 		boolean success = false;

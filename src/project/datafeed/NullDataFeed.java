@@ -1,5 +1,10 @@
 package project.datafeed;
 
+/**
+ * Null pattern - rather than returning a null upon incorrect parameters passed
+ * to the builder
+ * 
+ */
 public class NullDataFeed implements DataFeed {
 
 	@Override

@@ -12,8 +12,6 @@ import java.util.Set;
 
 import org.jfree.chart.ChartFrame;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.axis.NumberTickUnit;
 import org.jfree.chart.plot.Marker;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
@@ -48,12 +46,12 @@ public abstract class AbstractCharter implements SeriesCharter {
 
 	@Override
 	public void addDomainMarker(double xValue) {
-		Stroke stroke = new BasicStroke(2.5f);
+		Stroke stroke = new BasicStroke(1.5f);
 		Marker newMarker = new ValueMarker(xValue);
 
 		// Possibly set that later
 
-		// newMarker.setStroke(stroke);
+		 newMarker.setStroke(stroke);
 		newMarker.setPaint(Color.black);
 		if (chart != null) {
 			XYPlot plot = (XYPlot) chart.getPlot();
@@ -85,9 +83,6 @@ public abstract class AbstractCharter implements SeriesCharter {
 		}
 		setRenderingColours(plot, true);
 		setFonts(plot, RectangleEdge.BOTTOM);
-		//setPlotSteps(plot, 5, 10);
-		//plot.setForegroundAlpha(0.6f);
-		//chart.removeLegend();
 		
 		ChartFrame frame = new ChartFrame("Chart window", chart);
 		frame.setSize(1500, 1400);

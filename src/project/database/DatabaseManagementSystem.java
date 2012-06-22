@@ -2,8 +2,11 @@ package project.database;
 
 import project.database.exceptions.DataTableCreationException;
 
+/**
+ * Encapsulates standard SQL procedures
+ *
+ */
 public interface DatabaseManagementSystem {
-
 
 	/**
 	 * 
@@ -12,13 +15,12 @@ public interface DatabaseManagementSystem {
 	 * 
 	 * @param tableName
 	 *            of the table to be created (must be unique)
-	 * @param columns 
+	 * @param columns
 	 *            to be entered
 	 * @throws DataTableCreationException
 	 */
 	public void createTable(String tableName, String... columns) throws DataTableCreationException;
-	
-	
+
 	/**
 	 * Delete given table.
 	 * 

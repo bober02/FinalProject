@@ -4,6 +4,11 @@ import java.io.IOException;
 
 import project.io.Logger;
 
+/**
+ * This module is implemented to be passed to a separate thread performing data
+ * base insertions of many CSV files.
+ * 
+ */
 public class DataInsertModule implements Runnable {
 
 	private CSVFileWriter writer;
@@ -12,8 +17,7 @@ public class DataInsertModule implements Runnable {
 	private int files;
 	private Thread t;
 
-	public DataInsertModule(CSVFileWriter writer, Logger log,
-			String... fileNames) {
+	public DataInsertModule(CSVFileWriter writer, Logger log, String... fileNames) {
 		this.writer = writer;
 		this.filenames = fileNames;
 		this.log = log;
@@ -38,8 +42,7 @@ public class DataInsertModule implements Runnable {
 				errors++;
 			}
 		}
-		log.writeln("Storing has finished! Files to save: " + files
-				+ "  Errors: " + errors);
+		log.writeln("Storing has finished! Files to save: " + files + "  Errors: " + errors);
 	}
 
 }

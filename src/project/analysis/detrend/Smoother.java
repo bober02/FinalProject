@@ -1,5 +1,8 @@
 package project.analysis.detrend;
 
+/**
+ * This class performs smoothing of the data using an average mean of the data with a certain span of points.
+ */
 public class Smoother implements Detrender {
 
 	private static final int DEFAULT_SPAN = 5;
@@ -13,6 +16,7 @@ public class Smoother implements Detrender {
 		setSpan(span);
 	}
 
+	// Describes how many points we take into account when calculating the mean
 	public void setSpan(int span) {
 		if (span % 2 == 0) {
 			span--;
@@ -36,14 +40,6 @@ public class Smoother implements Detrender {
 	@Override
 	public double[] detrend(double[] xs, double[] ys) {
 		return smooth(ys);
-	}
-
-	public boolean equals(Object o) {
-		if (o == null)
-			return false;
-		if (o == this)
-			return true;
-		return o.getClass() == this.getClass();
 	}
 
 }

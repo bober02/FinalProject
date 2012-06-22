@@ -29,6 +29,7 @@ public class WindowOnlineMean extends StorelessOnlineMean {
 	public void increment(double x) {
 		//indicates that there is window
 		if(values != null){
+			//Value is already present
 			if(!Double.isNaN(values[index])){
 				double val = values[index];
 				this.remove(val);

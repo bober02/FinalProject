@@ -1,8 +1,6 @@
 package project.io;
 
-import java.io.Closeable;
-
-public interface Logger extends Closeable{
+public interface Logger{
 
 	/**
 	 * Writes give string to the output;

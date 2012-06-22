@@ -1,6 +1,5 @@
 package project.graphs;
 
-import java.awt.BasicStroke;
 import java.awt.Font;
 import java.awt.Paint;
 import java.util.ArrayList;
@@ -9,8 +8,6 @@ import java.util.List;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartFrame;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.axis.NumberTickUnit;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
@@ -33,7 +30,7 @@ public class HistogramCharter {
 	public HistogramCharter() {
 		functionSets = new ArrayList<XYDataset>();
 		dataset = new HistogramDataset();
-        dataset.setType(HistogramType.SCALE_AREA_TO_1);
+		dataset.setType(HistogramType.SCALE_AREA_TO_1);
 	}
 
 	public void addHistogram(Comparable<?> name, double[] values, int bins) {
@@ -45,7 +42,7 @@ public class HistogramCharter {
 	}
 
 	public void showChart(String title, String xAxis, String yAxis) {
-		JFreeChart chart = ChartFactory.createHistogram(title ,xAxis ,yAxis, dataset, PlotOrientation.VERTICAL, true, false, false);
+		JFreeChart chart = ChartFactory.createHistogram(title, xAxis, yAxis, dataset, PlotOrientation.VERTICAL, true, false, false);
 		if (!functionSets.isEmpty()) {
 			XYPlot plot = (XYPlot) chart.getPlot();
 			plot.setForegroundAlpha(0.5f);
@@ -56,38 +53,37 @@ public class HistogramCharter {
 				index++;
 			}
 			setRenderingColours(plot);
-			LegendTitle legendTitle = chart.getLegend(); 
-			legendTitle.setPosition(RectangleEdge.BOTTOM); 
+			LegendTitle legendTitle = chart.getLegend();
+			legendTitle.setPosition(RectangleEdge.BOTTOM);
 			legendTitle.setItemFont(new Font("Arial", Font.PLAIN, 28));
-			
+
 			Font font = new Font("Arial", Font.PLAIN, 20);
 			plot.getDomainAxis().setTickLabelFont(font);
 			plot.getRangeAxis().setTickLabelFont(font);
-			
+
 			font = new Font("Arial", Font.PLAIN, 24);
 			plot.getDomainAxis().setLabelFont(font);
 			plot.getRangeAxis().setLabelFont(font);
 		}
-		
+
 		ChartFrame frame = new ChartFrame("Chart window", chart);
 		frame.setSize(1400, 1400);
 		frame.setVisible(true);
 	}
-	
+
 	private void setRenderingColours(XYPlot plot) {
 		int paintIndex = 0;
 		int seriesIndex = 0;
 		Paint[] colours = ColorUtils.getColorList();
 		XYItemRenderer renderer = null;
-		for(int index = 0; index < plot.getDatasetCount(); index++){
+		for (int index = 0; index < plot.getDatasetCount(); index++) {
 			XYItemRenderer next = plot.getRenderer(index);
-			if(next != null){
+			if (next != null) {
 				renderer = next;
 				seriesIndex = 0;
 			}
-			for(int i = 0; i < plot.getDataset(index).getSeriesCount(); i++ ){
+			for (int i = 0; i < plot.getDataset(index).getSeriesCount(); i++) {
 				renderer.setSeriesPaint(seriesIndex, colours[paintIndex]);
-				//renderer.setSeriesStroke(seriesIndex, new BasicStroke(2.0f));
 				seriesIndex++;
 				paintIndex++;
 			}

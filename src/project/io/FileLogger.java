@@ -13,7 +13,7 @@ public class FileLogger implements Logger {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void finalize() throws IOException {
 		writer.close();
 	}
 

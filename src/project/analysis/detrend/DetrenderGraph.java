@@ -11,6 +11,7 @@ import project.utis.DataUtils;
 public class DetrenderGraph {
 
 	protected DataSeriesCharter charter;
+	// Allows to insert more than one detrenders into the set
 	protected LinkedHashSet<Detrender> detrenders;
 	protected Logger log;
 

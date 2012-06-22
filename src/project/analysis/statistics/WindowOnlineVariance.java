@@ -1,7 +1,15 @@
 package project.analysis.statistics;
 
+/**
+ * This class implements my online-variance with window statistic as described in
+ * the report. It holds last N inserted values and for each new data point it
+ * "removes" the oldest one from the set and then adds the new value. It
+ * maintains constant time performance for each new value.
+ * 
+ */
 public class WindowOnlineVariance extends StorelessOnlineMean {
 
+	// bias corrected returns sample variance (N-1)
 	private boolean isBiasCorrected;
 	private double m2;
 	private double[] values;
@@ -43,10 +51,10 @@ public class WindowOnlineVariance extends StorelessOnlineMean {
 		if (values != null) {
 			if (!Double.isNaN(values[index])) {
 				double val = values[index];
-				remove(val);
+				// remove from mean and calculate deviation statistics
+				super.remove(val);
 				m2 -= ((double) n) * dev * nDev;
-				// case of double rounding, which can cause minimal negative
-				// values
+				// double precision which can cause minimal negative
 				if (m2 < 0)
 					m2 = 0;
 			}
@@ -72,7 +80,8 @@ public class WindowOnlineVariance extends StorelessOnlineMean {
 		else {
 			if (isBiasCorrected) {
 				return m2 / (n - 1d);
-			} else {
+			}
+			else {
 				return m2 / n;
 			}
 		}

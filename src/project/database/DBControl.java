@@ -6,17 +6,24 @@ import java.util.Set;
 
 import project.database.connection.DatabaseConnection;
 import project.database.exceptions.DataTableAccessException;
+import project.io.Logger;
 import project.utis.StringUtils;
 
 import com.almworks.sqlite4java.SQLiteStatement;
 
+/**
+ * Additional class used to print and clear databases
+ * 
+ */
 public class DBControl {
 
 	private Set<String> tables;
 	private DatabaseConnection db;
+	private Logger log;
 
-	public DBControl(DatabaseConnection dbConnection) {
-		db = dbConnection;
+	public DBControl(DatabaseConnection dbConnection, Logger log) {
+		this.db = dbConnection;
+		this.log = log;
 		tables = new HashSet<String>();
 	}
 
@@ -28,20 +35,18 @@ public class DBControl {
 				tables.add(st.columnString(0));
 			}
 		} catch (Exception e) {
-			System.out
-					.println("Exception has occurred while trying to update tables list: "
-							+ e.getMessage());
+			log.writeln("Exception has occurred while trying to update tables list: " + e.getMessage());
 		}
 
 	}
 
 	public void printTables() {
 		updateTablesList();
-		System.out.println("Tables: ");
-		System.out.println(StringUtils.generateString('-', 75));
+		log.writeln("Tables: ");
+		log.writeln(StringUtils.generateString('-', 75));
 		for (String table : tables) {
-			System.out.print(StringUtils.padRight(table, 10) + "|");
-			System.out.println();
+			log.write(StringUtils.padRight(table, 10) + "|");
+			log.writeln("");
 		}
 
 	}
@@ -57,9 +62,7 @@ public class DBControl {
 				st.step();
 				it.remove();
 			} catch (Exception e) {
-				throw new DataTableAccessException(
-						"Exception occured while clearing database: "
-								+ e.getMessage());
+				throw new DataTableAccessException("Exception occured while clearing database: " + e.getMessage());
 			}
 		}
 
@@ -70,33 +73,30 @@ public class DBControl {
 	}
 
 	public void printValues(String tableName, long limit) {
-		System.out.println("TABLE: " + tableName);
+		log.writeln("TABLE: " + tableName);
 		String query = "SELECT * FROM " + tableName + " LIMIT " + limit;
 		try {
 			SQLiteStatement st = db.prepare(query);
 			int columns = st.columnCount();
 			for (int i = 0; i < columns; i++) {
-				System.out.print(StringUtils.padRight(st.getColumnName(i), 10)
-						+ "|");
+				log.write(StringUtils.padRight(st.getColumnName(i), 10) + "|");
 			}
-			System.out.println();
-			System.out.println(StringUtils.generateString('-', columns * 11));
+			log.writeln("");
+			log.writeln(StringUtils.generateString('-', columns * 11));
 			while (st.step()) {
 				for (int i = 0; i < columns; i++) {
 					Double val = st.columnDouble(i);
-					System.out.print(StringUtils.padRight(val.toString(), 10)
-							+ "|");
+					log.write(StringUtils.padRight(val.toString(), 10) + "|");
 				}
-				System.out.println();
+				log.writeln("");
 			}
 		} catch (Exception e) {
-			throw new DataTableAccessException(
-					"SqlException occured while reading from " + tableName);
+			throw new DataTableAccessException("SqlException occured while reading from " + tableName);
 		}
 	}
 
 	@Override
-	public void finalize(){
+	public void finalize() {
 		db.dispose();
 	}
 }

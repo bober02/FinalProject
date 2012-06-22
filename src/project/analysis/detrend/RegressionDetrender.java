@@ -2,6 +2,11 @@ package project.analysis.detrend;
 
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 
+/**
+ * This class finds a linear trend in the data set and then removes it by
+ * subtracting the trend line
+ * 
+ */
 public class RegressionDetrender implements Detrender {
 
 	@Override
@@ -23,14 +28,6 @@ public class RegressionDetrender implements Detrender {
 			result[i] -= (xs[i] * slope);
 		}
 		return result;
-	}
-
-	public boolean equals(Object o) {
-		if (o == null)
-			return false;
-		if (o == this)
-			return true;
-		return o.getClass() == this.getClass();
 	}
 
 }

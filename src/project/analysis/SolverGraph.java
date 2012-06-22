@@ -38,14 +38,14 @@ public class SolverGraph extends DetrenderGraph {
 			for (Detrender d : detrenders) {
 				detrendYs = d.detrend(xs, detrendYs);
 			}
-			charter.addSeries("Detrended Data", xs, detrendYs);
+			//charter.addSeries("Detrended Data", xs, detrendYs);
 			charter.addRangeMarker(0d);
 		}
 		Timer t = new Timer();
 		t.start();
 		double[] res = solver.solve(xs, detrendYs);
 		t.stop();
-		System.out.println((double) t.getTimeElapsed() / 1000);
+		log.writeln("Elapsed: " + (double) t.getTimeElapsed() / 1000);
 		for (double x : res) {
 			charter.addDomainMarker(x);
 		}

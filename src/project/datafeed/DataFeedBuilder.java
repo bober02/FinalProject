@@ -4,6 +4,10 @@ import project.database.connection.DatabaseConnection;
 import project.database.connection.SQLiteQueryExecutor;
 import project.io.Logger;
 
+/**
+ * Builder pattern for data feeds.
+ *
+ */
 public class DataFeedBuilder implements DataFeedProvider {
 
 	private DatabaseConnection db;

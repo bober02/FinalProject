@@ -41,7 +41,7 @@ public class SQLDatabaseManager implements DatabaseManagementSystem {
 			db.prepareQuery(query);
 			db.executeQuery();
 		} catch (QueryException e) {
-			throw new DataTableAccessException("SQLException occured while dropping a table " + tableName+ ": " + e.getMessage());
+			throw new DataTableAccessException("SQLException occured while dropping a table " + tableName + ": " + e.getMessage());
 		}
 	}
 
@@ -61,7 +61,7 @@ public class SQLDatabaseManager implements DatabaseManagementSystem {
 			db.prepareQuery(builder.toString());
 			db.executeQuery();
 		} catch (QueryException e) {
-			throw new DataTableAccessException("SqlException occured while inserting values to " + tableName+ ": " + e.getMessage());
+			throw new DataTableAccessException("SqlException occured while inserting values to " + tableName + ": " + e.getMessage());
 		}
 
 	}

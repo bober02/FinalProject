@@ -10,8 +10,7 @@ import project.database.exceptions.QueryException;
 import com.almworks.sqlite4java.SQLiteException;
 import com.almworks.sqlite4java.SQLiteStatement;
 
-public class SQLiteQueryExecutor implements DBQueryExecutor,
-		DBResultQueryExecutor {
+public class SQLiteQueryExecutor implements DBQueryExecutor, DBResultQueryExecutor {
 
 	private DatabaseConnection db;
 	private double[][] result;
@@ -26,19 +25,16 @@ public class SQLiteQueryExecutor implements DBQueryExecutor,
 	@Override
 	public void prepareQuery(String query) throws QueryException {
 		try {
-			// Should make user finish current query?
 			statement = db.prepare(query);
 		} catch (DatabaseConnectionException e) {
-			throw new QueryException("Could not prepare the query: "
-					+ e.getMessage());
+			throw new QueryException("Could not prepare the query: " + e.getMessage());
 		}
 	}
 
 	@Override
 	public void executeQuery() throws QueryException {
 		if (isFinished())
-			throw new QueryException(
-					"No query has been set for execution or previous executions has finished");
+			throw new QueryException("No query has been set for execution or previous executions has finished");
 		List<double[]> res = null;
 		try {
 			while (statement.step()) {
@@ -62,8 +58,7 @@ public class SQLiteQueryExecutor implements DBQueryExecutor,
 				result = ret;
 			}
 		} catch (SQLiteException e) {
-			throw new QueryException("An error occured while executing query: "
-					+ query + ". " + e.getMessage());
+			throw new QueryException("An error occured while executing query: " + query + ". " + e.getMessage());
 		} finally {
 			statement = null;
 		}
@@ -72,8 +67,7 @@ public class SQLiteQueryExecutor implements DBQueryExecutor,
 	@Override
 	public void executeQueryStep() throws QueryException {
 		if (isFinished())
-			throw new QueryException(
-					"No query has been set for execution or previous executions has finished");
+			throw new QueryException("No query has been set for execution or previous executions has finished");
 		try {
 			boolean hasData = statement.step();
 			if (hasData) {
@@ -82,15 +76,15 @@ public class SQLiteQueryExecutor implements DBQueryExecutor,
 				for (int i = 0; i < columns; i++)
 					row[i] = statement.columnDouble(i);
 				stepResult = row;
-			} else {
+			}
+			else {
 				stepResult = null;
 				statement = null;
 			}
 		} catch (SQLiteException e) {
 			statement = null;
 			stepResult = null;
-			throw new QueryException("An error occured while executing query: "
-					+ query + ". " + e.getMessage());
+			throw new QueryException("An error occured while executing query: " + query + ". " + e.getMessage());
 		}
 	}
 
