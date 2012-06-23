@@ -11,9 +11,12 @@ import org.apache.commons.math3.util.FastMath;
 import org.jfree.data.function.Function2D;
 import org.jfree.data.function.NormalDistributionFunction2D;
 
+import project.analysis.BayesianSolver;
+import project.analysis.Regime;
 import project.analysis.RegimeGeneratingDataFeed;
 import project.analysis.RegimeSolver;
 import project.analysis.SolverGraph;
+import project.analysis.StandardDeviationSolver;
 import project.analysis.detrend.Detrender;
 import project.analysis.detrend.DetrenderGraph;
 import project.analysis.detrend.DifferenceDetrender;
@@ -61,26 +64,29 @@ public class Runner {
 
 	// Here goes all the main logic that would be invoked in the main()
 	public void run() throws DataFeedException {
-		this.showData();
+		 this.testSyntheticData(new StandardDeviationSolver(1000, 0.04), true, differenceDetrender);
+		 //this.testSyntheticData(new BayesianSolver(), true);
+		showRealDataResults(new BayesianSolver(), logDifferenceDetrender);
 	}
 
 	// ***************************************************** //
 	// ********** TESTS ON REAL AND SYNTHETIC DATA ********* //
 	// ***************************************************** //
 
-	public void testRealData(RegimeSolver solver) throws DataFeedException {
-		Detrender detrender = logDifferenceDetrender;
+	public void showRealDataResults(RegimeSolver solver, Detrender... detrenders) throws DataFeedException {
 		for (String table : Tables.getTables()) {
 			DataFeed df = dfBuilder.forTable(table).includeDays().includeSettle().build();
 			SolverGraph graph = new SolverGraph(solver, new DoubleSeriesCharter(), log);
-			graph.addDetrender(detrender);
+			for (Detrender d : detrenders){
+				graph.addDetrender(d);
+			}
 			String title = "Regimes  for " + Tables.getTableName(table);
 			graph.solveAndPlot(df, title, true);
 		}
 	}
 
-	public void testSyntheticData(RegimeSolver solver) throws DataFeedException {
-		int trials = 10000;
+	public void testSyntheticData(RegimeSolver solver, boolean randomizeVariance, Detrender... detrenders) throws DataFeedException {
+		int trials = 1000;
 		Mean mean = new Mean();
 		Variance variance = new Variance(false);
 		double sumSquared = 0;
@@ -88,14 +94,17 @@ public class Runner {
 		int length = 0;
 		int failed = 0;
 		for (int j = 0; j < trials; j++) {
-			RegimeGeneratingDataFeed df = new RegimeGeneratingDataFeed(2 + rand.nextInt(4));
-			double[] trueRegimes = df.getRegimePoints();
+			RegimeGeneratingDataFeed df = new RegimeGeneratingDataFeed(2 + rand.nextInt(4), randomizeVariance);
+			Regime[] trueRegimes = df.getRegimes();
 			double[][] values = DataUtils.transpose(df.getAllValues());
 			double[] xs = values[0];
 			double[] ys = values[1];
-			double[] estimatedRegimes = solver.solve(xs, ys);
+			for (Detrender d : detrenders){
+				ys = d.detrend(xs, ys);
+			}
+			Regime[] estimatedRegimes = solver.solve(xs, ys);
 			Arrays.sort(estimatedRegimes);
-			double[] shorter, longer;
+			Regime[] shorter, longer;
 			if (estimatedRegimes.length < trueRegimes.length) {
 				shorter = estimatedRegimes;
 				longer = trueRegimes;
@@ -112,10 +121,10 @@ public class Runner {
 			int index = 0;
 			int[] foundRegimes = new int[trueRegimes.length];
 			for (int i = 0; i < longer.length; i++) {
-				double xValue = longer[i];
-				double diff = FastMath.abs(xValue - shorter[index]);
+				double xValue = longer[i].getRegimeEnd();
+				double diff = FastMath.abs(xValue - shorter[index].getRegimeEnd());
 				while ((index + 1) < shorter.length) {
-					double nextDiff = FastMath.abs(xValue - shorter[index + 1]);
+					double nextDiff = FastMath.abs(xValue - shorter[index + 1].getRegimeEnd());
 					if (nextDiff < diff) {
 						diff = nextDiff;
 						index++;
@@ -148,11 +157,13 @@ public class Runner {
 		log.writeln("Squared error: " + sumSquared / length);
 	}
 
-	public void showSynteticDataResults(RegimeSolver solver) {
+	public void showSynteticDataResults(RegimeSolver solver, Detrender... detrenders) {
 		for (int i = 0; i < 1; i++) {
 			RegimeGeneratingDataFeed df = new RegimeGeneratingDataFeed(MAX_REGIMES);
 			SolverGraph graph = new SolverGraph(solver, new DoubleSeriesCharter(), log);
-			// graph.addDetrender(differenceDetrender);
+			for (Detrender d : detrenders){
+				graph.addDetrender(d);
+			}
 			graph.solveAndPlot(df, "Syntethic regime test", true);
 
 		}
@@ -162,7 +173,7 @@ public class Runner {
 	// ************ SPEED TESTS AND COMPARISONS ************ //
 	// ***************************************************** //
 
-	public void measureSolverSpeedMultipleSeries(RegimeSolver solver, int size, int numSeries) throws DataFeedException {
+	public void measureSolverSpeedMultipleSeries(RegimeSolver solver, int size, int numSeries, Detrender... detrenders ) throws DataFeedException {
 		dataCharter.beginNewPointSeries("Solver speed", false);
 		Timer timer = new Timer();
 		double time = 0;
@@ -171,7 +182,12 @@ public class Runner {
 			for (int i = 0; i <= numSeries; i++) {
 				DataFeed df = new RegimeGeneratingDataFeed(MAX_REGIMES, size);
 				double[][] values = DataUtils.transpose(df.getAllValues());
-				solver.solve(values[0], values[1]);
+				double[] xs = values[0];
+				double[] ys = values[1];
+				for (Detrender d : detrenders){
+					ys = d.detrend(xs, ys);
+				}
+				solver.solve(xs, ys);
 			}
 			timer.stop();
 			time += timer.getTimeElapsed();
@@ -179,7 +195,7 @@ public class Runner {
 		log.writeln(size + "   ,   " + time / 10);
 	}
 
-	public void measureSolverSpeed(RegimeSolver solver, int size, int numTrials) throws DataFeedException {
+	public void measureSolverSpeed(RegimeSolver solver, int size, int numTrials, Detrender... detrenders ) throws DataFeedException {
 		dataCharter.beginNewPointSeries("Solver speed", false);
 		Timer timer = new Timer();
 		double time = 0;
@@ -187,6 +203,11 @@ public class Runner {
 			DataFeed df = new RegimeGeneratingDataFeed(MAX_REGIMES, size);
 			double[][] values = DataUtils.transpose(df.getAllValues());
 			timer.start();
+			double[] xs = values[0];
+			double[] ys = values[1];
+			for (Detrender d : detrenders){
+				ys = d.detrend(xs, ys);
+			}
 			solver.solve(values[0], values[1]);
 			timer.stop();
 			time += timer.getTimeElapsed();

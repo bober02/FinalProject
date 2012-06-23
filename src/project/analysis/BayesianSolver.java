@@ -20,15 +20,13 @@ public class BayesianSolver extends AbstractRegimeSolver {
 	private Variance rightVariance;
 	private double confidence;
 
-
-
 	public BayesianSolver() {
 		measures = new Measures();
 		leftVariance = new Variance(false);
 		rightVariance = new Variance(false);
 		markers = new TreeSet<Integer>();
 		chi = new ChiSquaredDistribution(2);
-		confidence = 0.000001;
+		confidence = 0.001;
 	}
 
 	private void reset() {
@@ -42,26 +40,25 @@ public class BayesianSolver extends AbstractRegimeSolver {
 	}
 
 	@Override
-	public double[] solve(double[] xs, double[] ys) {
+	public Regime[] solve(double[] xs, double[] ys) {
 		if (xs.length != ys.length)
-			throw new IllegalArgumentException("Lengths of data must be the same: XS: " + xs.length + "  Ys: "
-					+ ys.length);
+			throw new IllegalArgumentException("Lengths of data must be the same: XS: " + xs.length + "  Ys: " + ys.length);
 		double L0 = Double.NaN;
-		int len = ys.length;
+		int length = ys.length;
 
 		// reduce that to just keeping score table; for left simply add to the
 		// score, and right will come later and adds itself
-		double[] logLikelihoods = new double[len];
-		for (int i = 0; i < len; i++) {
+		double[] logLikelihoods = new double[length];
+		for (int i = 0; i < length; i++) {
 			logLikelihoods[i] = Double.NaN;
 			leftVariance.increment(ys[i]);
 		}
 		// initial L0 measure
-		L0 = -len / 2 * FastMath.log(leftVariance.getResult());
+		L0 = -length / 2 * FastMath.log(leftVariance.getResult());
 
 		List<Double> previousLikelihoods = new ArrayList<Double>();
 		previousLikelihoods.add(L0);
-		markers.add(len);
+		markers.add(length);
 		boolean finish = false;
 		while (!finish) {
 			int maxMarker = -1;
@@ -83,16 +80,14 @@ public class BayesianSolver extends AbstractRegimeSolver {
 					rightVariance.increment(ys[rightIndex]);
 
 					double variance = leftVariance.getResult();
-					boolean success = updateMeasures(i, (i + 1) - begin, logLikelihoods, variance, L0,
-							otherSegmentsLikelihood, true);
+					boolean success = updateMeasures(i, (i + 1) - begin, logLikelihoods, variance, L0, otherSegmentsLikelihood, true);
 					if (success) {
 						maxMarker = markerIndex;
 						l.add(i);
 					}
 
 					variance = rightVariance.getResult();
-					success = updateMeasures(rightIndex - 1, i - begin, logLikelihoods, variance, L0,
-							otherSegmentsLikelihood, false);
+					success = updateMeasures(rightIndex - 1, i - begin, logLikelihoods, variance, L0, otherSegmentsLikelihood, false);
 					if (success) {
 						maxMarker = markerIndex;
 						l.add(rightIndex - 1);
@@ -109,9 +104,7 @@ public class BayesianSolver extends AbstractRegimeSolver {
 				previousLikelihoods.add(maxMarker, measures.getMaxRightLikelihood());
 				previousLikelihoods.add(maxMarker, measures.getMaxLeftLikelihood());
 			}
-			
 		}
-
 		double[] res = new double[markers.size() - 1];
 		int i = 0;
 		for (Integer marker : markers) {
@@ -120,22 +113,22 @@ public class BayesianSolver extends AbstractRegimeSolver {
 			for (int k = 0; k < i; k++) {
 				diff = FastMath.min(diff, FastMath.abs(res[k] - marker));
 			}
-			if (marker < len && diff > 0.05 * len) {
+			if (marker < length && diff > 0.05 * length) {
 				res[i] = marker;
 				i++;
 			}
 		}
 		res = Arrays.copyOfRange(res, 0, i);
-		for(int k=0; k < res.length; k++)
-			res[k] = xs[(int) res[k]];
+		Regime[] result = new Regime[res.length + 1];
+		for (int k = 0; k < res.length; k++)
+			result[k] = new Regime(xs[(int) res[k]]);
+		result[result.length - 1] = new Regime(length);
 		reset();
-		return res;
+		return result;
 	}
 
-;
-	
-	private boolean updateMeasures(int index, int n, double[] logLikelihoods, double variance, double L0,
-			double otherSegmentsLikelihood, boolean fromLeft) {
+	private boolean updateMeasures(int index, int n, double[] logLikelihoods, double variance, double L0, double otherSegmentsLikelihood,
+			boolean fromLeft) {
 		boolean success = false;
 		// if variance is 0.0, our measure would be infinity (best),
 		// as log(0) = -inf, which is not what we want
@@ -154,9 +147,9 @@ public class BayesianSolver extends AbstractRegimeSolver {
 
 				double L1 = additionalLikelihood + currLikelihood + otherSegmentsLikelihood;
 				double measure = 2 * (L1 - L0);
-
+				double correctedConfidence = confidence/logLikelihoods.length;
 				double pVal = 1 - chi.cumulativeProbability(measure);
-				if (pVal < confidence) {
+				if (pVal < correctedConfidence) {
 					if (measure > measures.getMaxChiMeasure()) {
 						success = true;
 						measures.setMaxIndex(index);
@@ -236,8 +229,8 @@ public class BayesianSolver extends AbstractRegimeSolver {
 
 		@Override
 		public String toString() {
-			return "MaxIndex: " + maxIndex + ", MaxLikelihood: " + maxLikelihood + ", leftLikelihood: "
-					+ maxLeftLikelihood + ", rightLikelihood: " + maxRightLikelihood;
+			return "MaxIndex: " + maxIndex + ", MaxLikelihood: " + maxLikelihood + ", leftLikelihood: " + maxLeftLikelihood + ", rightLikelihood: "
+					+ maxRightLikelihood;
 		}
 
 	}

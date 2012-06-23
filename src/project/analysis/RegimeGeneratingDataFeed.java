@@ -31,7 +31,11 @@ public class RegimeGeneratingDataFeed implements DataFeed {
 	public RegimeGeneratingDataFeed(int regimes, int numPoints) {
 		this(regimes, numPoints, true);
 	}
-	
+
+	public RegimeGeneratingDataFeed(int regimes, boolean randomizeVariance) {
+		this(regimes, (regimes + 1) * 1000, randomizeVariance);
+	}
+
 	public RegimeGeneratingDataFeed(int regimes, int numPoints, boolean randomizeVariance) {
 		maxRegimes = regimes;
 		this.window = numPoints / (regimes + 1);
@@ -68,7 +72,7 @@ public class RegimeGeneratingDataFeed implements DataFeed {
 				pointCount = 0;
 				if (low) {
 					mean = rand.nextDouble() * 15;
-					if(randomizeVariance)
+					if (randomizeVariance)
 						stdDev = 5 + rand.nextDouble() * 5;
 					else
 						stdDev = stdDevHigh;
@@ -76,7 +80,7 @@ public class RegimeGeneratingDataFeed implements DataFeed {
 				}
 				else {
 					mean = rand.nextDouble() * 15;
-					if(randomizeVariance)
+					if (randomizeVariance)
 						stdDev = rand.nextDouble() * 3;
 					else
 						stdDev = stdDevLow;

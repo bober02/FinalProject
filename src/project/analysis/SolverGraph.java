@@ -38,16 +38,16 @@ public class SolverGraph extends DetrenderGraph {
 			for (Detrender d : detrenders) {
 				detrendYs = d.detrend(xs, detrendYs);
 			}
-			//charter.addSeries("Detrended Data", xs, detrendYs);
 			charter.addRangeMarker(0d);
 		}
 		Timer t = new Timer();
 		t.start();
-		double[] res = solver.solve(xs, detrendYs);
+		Regime[] res = solver.solve(xs, detrendYs);
 		t.stop();
 		log.writeln("Elapsed: " + (double) t.getTimeElapsed() / 1000);
-		for (double x : res) {
-			charter.addDomainMarker(x);
+		for (int i = 0; i < res.length - 1; i++) {
+			Regime regime = res[i];
+			charter.addDomainMarker(regime.getRegimeEnd());
 		}
 		charter.showChart(title, "Time (Days)", "Asset price");
 	}

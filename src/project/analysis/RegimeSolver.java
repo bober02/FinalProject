@@ -17,7 +17,7 @@ public interface RegimeSolver {
 	 *            length(xs)>
 	 * @return list of x data points which are regime switching points.
 	 */
-	double[] solve(double[] xs, double[] ys);
+	Regime[] solve(double[] xs, double[] ys);
 
 	/**
 	 * General method for all solvers to include. This performs the logic of
@@ -30,6 +30,6 @@ public interface RegimeSolver {
 	 *            length(xs)>
 	 * @return list of x data points which are regime switching points.
 	 */
-	double[] solve(DataFeed df);
+	Regime[] solve(DataFeed df);
 
 }
