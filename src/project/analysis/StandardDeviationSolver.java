@@ -34,7 +34,7 @@ public class StandardDeviationSolver extends AbstractRegimeSolver {
 	}
 
 	@Override
-	public Regime[] solve(double[] xs, double[] ys) {
+	public double[] solve(double[] xs, double[] ys) {
 		if (xs.length != ys.length)
 			throw new IllegalArgumentException("Lengths of data must be the same: XS: " + xs.length + "  Ys: " + ys.length);
 		if (variance == null) {
@@ -116,10 +116,11 @@ public class StandardDeviationSolver extends AbstractRegimeSolver {
 			}
 		}
 		result = Arrays.copyOfRange(result, 0, regime);
-		Regime[] regimeResult = new Regime[result.length + 1];
+		double[] regimeResult = new double[result.length + 1];
 		for (int i = 0; i < result.length; i++)
-			regimeResult[i] = new Regime(xs[(int) result[i]]);
-		regimeResult[regimeResult.length - 1] = new Regime(length);
+			regimeResult[i] = xs[(int) result[i]];
+		regimeResult[regimeResult.length - 1] = xs[length-1] + 1;
+		Arrays.sort(regimeResult);
 		return regimeResult;
 	}
 

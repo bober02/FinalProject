@@ -1,17 +1,35 @@
 package project;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.distribution.ChiSquaredDistribution;
+import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.moment.Variance;
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.apache.commons.math3.util.FastMath;
+import org.apache.commons.math3.util.Precision;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartFrame;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
+import org.jfree.chart.renderer.xy.XYDotRenderer;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.function.Function2D;
 import org.jfree.data.function.NormalDistributionFunction2D;
+import org.jfree.data.statistics.HistogramType;
+import org.jfree.data.xy.DefaultXYDataset;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.util.ShapeUtilities;
 
-import project.analysis.BayesianSolver;
+import project.analysis.GaussianSolver;
 import project.analysis.Regime;
 import project.analysis.RegimeGeneratingDataFeed;
 import project.analysis.RegimeSolver;
@@ -64,9 +82,12 @@ public class Runner {
 
 	// Here goes all the main logic that would be invoked in the main()
 	public void run() throws DataFeedException {
-		 this.testSyntheticData(new StandardDeviationSolver(1000, 0.04), true, differenceDetrender);
-		 //this.testSyntheticData(new BayesianSolver(), true);
-		showRealDataResults(new BayesianSolver(), logDifferenceDetrender);
+		// this.testSyntheticData(100, new StandardDeviationSolver(1000, 0.04),
+		// false, differenceDetrender);
+		// this.testSyntheticData(100, new GaussianSolver(), true);
+		// this.testSyntheticGaussianParameter(100);
+		this.showQQPlots(dfBuilder.forTable(Tables.Corn).includeDays().includeSettle().build(), logDifferenceDetrender);
+		 //showRealDataResults(new GaussianSolver(), logDifferenceDetrender);
 	}
 
 	// ***************************************************** //
@@ -77,7 +98,7 @@ public class Runner {
 		for (String table : Tables.getTables()) {
 			DataFeed df = dfBuilder.forTable(table).includeDays().includeSettle().build();
 			SolverGraph graph = new SolverGraph(solver, new DoubleSeriesCharter(), log);
-			for (Detrender d : detrenders){
+			for (Detrender d : detrenders) {
 				graph.addDetrender(d);
 			}
 			String title = "Regimes  for " + Tables.getTableName(table);
@@ -85,26 +106,26 @@ public class Runner {
 		}
 	}
 
-	public void testSyntheticData(RegimeSolver solver, boolean randomizeVariance, Detrender... detrenders) throws DataFeedException {
-		int trials = 1000;
+	public void testSyntheticData(int trials, RegimeSolver solver, boolean randomizeVariance, Detrender... detrenders) throws DataFeedException {
 		Mean mean = new Mean();
 		Variance variance = new Variance(false);
-		double sumSquared = 0;
 		Random rand = new Random();
+		ArrayList<Double> errors = new ArrayList<Double>(100);
 		int length = 0;
 		int failed = 0;
+		double sumSquared = 0;
+		double worstCase = 0;
 		for (int j = 0; j < trials; j++) {
-			RegimeGeneratingDataFeed df = new RegimeGeneratingDataFeed(2 + rand.nextInt(4), randomizeVariance);
-			Regime[] trueRegimes = df.getRegimes();
+			RegimeGeneratingDataFeed df = new RegimeGeneratingDataFeed(2 + rand.nextInt(6), randomizeVariance);
+			double[] trueRegimes = df.getRegimes();
 			double[][] values = DataUtils.transpose(df.getAllValues());
 			double[] xs = values[0];
 			double[] ys = values[1];
-			for (Detrender d : detrenders){
+			for (Detrender d : detrenders) {
 				ys = d.detrend(xs, ys);
 			}
-			Regime[] estimatedRegimes = solver.solve(xs, ys);
-			Arrays.sort(estimatedRegimes);
-			Regime[] shorter, longer;
+			double[] estimatedRegimes = solver.solve(xs, ys);
+			double[] shorter, longer;
 			if (estimatedRegimes.length < trueRegimes.length) {
 				shorter = estimatedRegimes;
 				longer = trueRegimes;
@@ -117,14 +138,14 @@ public class Runner {
 				failed++;
 				continue;
 			}
-			double squaredError = 0.0;
+			double trialSquaredError = 0.0;
 			int index = 0;
 			int[] foundRegimes = new int[trueRegimes.length];
 			for (int i = 0; i < longer.length; i++) {
-				double xValue = longer[i].getRegimeEnd();
-				double diff = FastMath.abs(xValue - shorter[index].getRegimeEnd());
+				double xValue = longer[i];
+				double diff = FastMath.abs(xValue - shorter[index]);
 				while ((index + 1) < shorter.length) {
-					double nextDiff = FastMath.abs(xValue - shorter[index + 1].getRegimeEnd());
+					double nextDiff = FastMath.abs(xValue - shorter[index + 1]);
 					if (nextDiff < diff) {
 						diff = nextDiff;
 						index++;
@@ -136,7 +157,7 @@ public class Runner {
 				foundRegimes[index] = 1;
 				mean.increment(diff);
 				variance.increment(diff);
-				squaredError += diff * diff;
+				trialSquaredError += diff * diff;
 			}
 			int found = 0;
 			for (int i = 0; i < foundRegimes.length; i++) {
@@ -146,22 +167,158 @@ public class Runner {
 				failed++;
 				continue;
 			}
-			sumSquared += squaredError;
+			if (trialSquaredError > worstCase)
+				worstCase = trialSquaredError;
+			errors.add(FastMath.sqrt(trialSquaredError));
+			sumSquared += trialSquaredError;
 			length += longer.length;
 			mean.clear();
 			variance.clear();
-
 		}
 		log.writeln("trials: " + trials);
 		log.writeln("failed: " + failed);
-		log.writeln("Squared error: " + sumSquared / length);
+		log.writeln("Worst RMS: " + Precision.round(FastMath.sqrt(worstCase), 3));
+		log.writeln("Rootm mean quare error: " + Precision.round(FastMath.sqrt(sumSquared / length), 3));
+		HistogramCharter histogramCharter = new HistogramCharter(HistogramType.RELATIVE_FREQUENCY);
+		histogramCharter.addHistogram("RMS", ArrayUtils.toPrimitive(errors.toArray(new Double[0])), 15);
+		histogramCharter.showChart("Root mean squared errors", "Error", "Relative frequency");
+	}
+
+	public void testSyntheticGaussianParameter(int trials) throws DataFeedException {
+		Random rand = new Random();
+		RegimeSolver solver = new GaussianSolver();
+		ArrayList<Double> meanErrors = new ArrayList<Double>(trials);
+		ArrayList<Double> stdDevErrors = new ArrayList<Double>(trials);
+		double meanError = 0, stdDevError = 0;
+		int totalPoints = 0;
+		for (int j = 0; j < trials; j++) {
+			RegimeGeneratingDataFeed df = new RegimeGeneratingDataFeed(2 + rand.nextInt(6), true);
+			double[] trueRegimeEndings = df.getRegimes();
+			double[][] values = DataUtils.transpose(df.getAllValues());
+			double[] xs = values[0];
+			double[] ys = values[1];
+			double[] estimatedRegimeEndings = solver.solve(xs, ys);
+			totalPoints += xs.length;
+
+			Regime[] trueRegimes = constructRegimePoints(xs, ys, trueRegimeEndings);
+			Regime[] estRegimes = constructRegimePoints(xs, ys, estimatedRegimeEndings);
+			int trueRegimeIndex = 0, estRegimeIndex = 0;
+			Regime trueRegime = trueRegimes[trueRegimeIndex];
+			Regime estRegime = estRegimes[estRegimeIndex];
+			double trialMeanError = 0, trialStdDevError = 0;
+			for (int i = 0; i < xs.length; i++) {
+				if (xs[i] > trueRegime.getRegimeEnd()) {
+					trueRegimeIndex++;
+					trueRegime = trueRegimes[trueRegimeIndex];
+				}
+				if (xs[i] > estRegime.getRegimeEnd()) {
+					estRegimeIndex++;
+					estRegime = estRegimes[estRegimeIndex];
+				}
+				trialMeanError += FastMath.pow((trueRegime.getMean() - estRegime.getMean()) / trueRegime.getMean(), 2);
+				trialStdDevError += FastMath.pow((trueRegime.getStdDev() - estRegime.getStdDev()) / trueRegime.getStdDev(), 2);
+			}
+			meanError += trialMeanError;
+			stdDevError += trialStdDevError;
+			meanErrors.add(FastMath.sqrt(trialMeanError / xs.length));
+			stdDevErrors.add(FastMath.sqrt(trialStdDevError / xs.length));
+		}
+		log.writeln("Trials: " + trials);
+		log.writeln("Total points generated: " + totalPoints);
+		log.writeln("Trial RMS of mean estimate: " + Precision.round(FastMath.sqrt(meanError / trials), 3));
+		log.writeln("Trial RMS of std dev estimate: " + Precision.round(FastMath.sqrt(stdDevError / trials), 3));
+		log.writeln("Point RMS of mean estimate: " + Precision.round(FastMath.sqrt(meanError / totalPoints), 3));
+		log.writeln("Point RMS of std dev estimate: " + Precision.round(FastMath.sqrt(stdDevError / totalPoints), 3));
+		HistogramCharter histogramCharter = new HistogramCharter(HistogramType.RELATIVE_FREQUENCY);
+		histogramCharter.addHistogram("RMS", ArrayUtils.toPrimitive(meanErrors.toArray(new Double[0])), 20);
+		histogramCharter.showChart("Frequency of RMS error of mean for one data point across all trials", "Error", "Relative frequency");
+		histogramCharter = new HistogramCharter(HistogramType.RELATIVE_FREQUENCY);
+		histogramCharter.addHistogram("RMS", ArrayUtils.toPrimitive(stdDevErrors.toArray(new Double[0])), 20);
+		histogramCharter
+				.showChart("Frequency of RMS error of standard deviation for one data point across all trials", "Error", "Relative frequency");
+	}
+
+	private Regime[] constructRegimePoints(double[] xs, double[] ys, double[] regimeEnds) {
+		Regime[] regimes = new Regime[regimeEnds.length];
+		Mean mean = new Mean();
+		Variance variance = new Variance(false);
+		int regimeIndex = 0;
+		int i = 0;
+		for (double regime : regimeEnds) {
+			mean.clear();
+			variance.clear();
+			while (i < xs.length && xs[i] <= regime) {
+				mean.increment(ys[i]);
+				variance.increment(ys[i]);
+				i++;
+			}
+			regimes[regimeIndex] = new Regime(mean.getResult(), FastMath.sqrt(variance.getResult()), regime);
+			regimeIndex++;
+		}
+		return regimes;
+	}
+
+	public void showQQPlots(DataFeed df, Detrender... detrenders) {
+		RegimeSolver solver = new GaussianSolver();
+		double[][] values;
+		try {
+			values = DataUtils.transpose(df.getAllValues());
+		} catch (DataFeedException e) {
+			log.writeln("Exception happened while obtaining data from the feed: " + e.getMessage());
+			return;
+		}
+		double[] xs = values[0];
+		double[] ys = values[1];
+		for (Detrender d : detrenders) {
+			ys = d.detrend(xs, ys);
+		}
+		double[] regimeEnds = solver.solve(xs, ys);
+		Regime[] regimes = constructRegimePoints(xs, ys, regimeEnds);
+
+		Percentile empirical = new Percentile();
+		int begin = 0, end = 0, index = 0;
+		for (Regime r : regimes) {
+			XYSeriesCollection quantiles = new XYSeriesCollection();
+			XYSeries series = new XYSeries("QQ plot", false, true);
+			NormalDistribution dist = new NormalDistribution(r.getMean(), r.getStdDev());
+			while (end < xs.length && xs[end] <= r.getRegimeEnd()) {
+				end++;
+			}
+			empirical.setData(Arrays.copyOfRange(ys, begin, end));
+			for (double percentile = 1; percentile < 100; percentile += 1) {
+				double fit = dist.inverseCumulativeProbability(percentile / 100);
+				double emp = empirical.evaluate(percentile);
+				series.add(emp, fit);
+			}
+			begin = end;
+			index++;
+			quantiles.addSeries(series);
+			JFreeChart chart = ChartFactory.createScatterPlot("QQ plot - segment " + index, "Empirical quantile", "Fit quantile", quantiles, PlotOrientation.VERTICAL, true,
+					true, false);
+			XYPlot plot = chart.getXYPlot();
+			XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
+			renderer.setSeriesShape(0, ShapeUtilities.createUpTriangle(5));
+			renderer.setSeriesShapesFilled(0, false);
+			DefaultXYDataset line = new DefaultXYDataset();
+			line.addSeries(
+					"true fit",
+					new double[][] { new double[] { empirical.evaluate(1), empirical.evaluate(99) },
+							new double[] { empirical.evaluate(1), empirical.evaluate(99) } });
+			plot.setDataset(1, line);
+			plot.setRenderer(1, new StandardXYItemRenderer());
+			ChartFrame frame = new ChartFrame("Chart window", chart);
+			frame.setSize(1500, 1400);
+			frame.setVisible(true);
+		}
+
+		
 	}
 
 	public void showSynteticDataResults(RegimeSolver solver, Detrender... detrenders) {
 		for (int i = 0; i < 1; i++) {
 			RegimeGeneratingDataFeed df = new RegimeGeneratingDataFeed(MAX_REGIMES);
 			SolverGraph graph = new SolverGraph(solver, new DoubleSeriesCharter(), log);
-			for (Detrender d : detrenders){
+			for (Detrender d : detrenders) {
 				graph.addDetrender(d);
 			}
 			graph.solveAndPlot(df, "Syntethic regime test", true);
@@ -173,7 +330,7 @@ public class Runner {
 	// ************ SPEED TESTS AND COMPARISONS ************ //
 	// ***************************************************** //
 
-	public void measureSolverSpeedMultipleSeries(RegimeSolver solver, int size, int numSeries, Detrender... detrenders ) throws DataFeedException {
+	public void measureSolverSpeedMultipleSeries(RegimeSolver solver, int size, int numSeries, Detrender... detrenders) throws DataFeedException {
 		dataCharter.beginNewPointSeries("Solver speed", false);
 		Timer timer = new Timer();
 		double time = 0;
@@ -184,7 +341,7 @@ public class Runner {
 				double[][] values = DataUtils.transpose(df.getAllValues());
 				double[] xs = values[0];
 				double[] ys = values[1];
-				for (Detrender d : detrenders){
+				for (Detrender d : detrenders) {
 					ys = d.detrend(xs, ys);
 				}
 				solver.solve(xs, ys);
@@ -195,7 +352,7 @@ public class Runner {
 		log.writeln(size + "   ,   " + time / 10);
 	}
 
-	public void measureSolverSpeed(RegimeSolver solver, int size, int numTrials, Detrender... detrenders ) throws DataFeedException {
+	public void measureSolverSpeed(RegimeSolver solver, int size, int numTrials, Detrender... detrenders) throws DataFeedException {
 		dataCharter.beginNewPointSeries("Solver speed", false);
 		Timer timer = new Timer();
 		double time = 0;
@@ -205,7 +362,7 @@ public class Runner {
 			timer.start();
 			double[] xs = values[0];
 			double[] ys = values[1];
-			for (Detrender d : detrenders){
+			for (Detrender d : detrenders) {
 				ys = d.detrend(xs, ys);
 			}
 			solver.solve(values[0], values[1]);
@@ -322,7 +479,7 @@ public class Runner {
 		Function2D N01 = new NormalDistributionFunction2D(0, 1);
 		Function2D N004 = new NormalDistributionFunction2D(0, 0.6);
 		Function2D N52 = new NormalDistributionFunction2D(4, 2);
-		HistogramCharter charter = new HistogramCharter();
+		HistogramCharter charter = new HistogramCharter(HistogramType.SCALE_AREA_TO_1);
 		charter.addFunction("mean=0, sd=3 ", N03, begin, end, 100000);
 		charter.addFunction("mean=0, sd=1", N01, begin, end, 100000);
 		charter.addFunction("mean=0, sd=0.4", N004, begin, end, 100000);
@@ -343,7 +500,7 @@ public class Runner {
 			variance.increment(val);
 		}
 		Function2D trueNormal = new NormalDistributionFunction2D(mean.getResult(), FastMath.sqrt(variance.getResult()));
-		HistogramCharter charter = new HistogramCharter();
+		HistogramCharter charter = new HistogramCharter(HistogramType.SCALE_AREA_TO_1);
 		charter.addFunction("Gaussian fit", trueNormal, -0.5, 0.5, 1000000);
 		charter.addHistogram("Data count", detrendedData, 200);
 		charter.showChart("S&P 500 data fit with logdifference detrending", "X", "P(X)");

@@ -10,10 +10,6 @@ public class Regime implements Comparable<Regime>{
 		this(Double.NaN, Double.NaN, regimeEnd);
 	}
 
-	public Regime(double stdDev, double maxValue) {
-		this(Double.NaN, stdDev, maxValue);
-	}
-
 	public Regime(double mean, double stdDev, double maxValue) {
 		this.mean = mean;
 		this.stdDev = stdDev;
@@ -28,13 +24,23 @@ public class Regime implements Comparable<Regime>{
 		return stdDev;
 	}
 
+	
+	
+	public void setMean(double mean) {
+		this.mean = mean;
+	}
+
+	public void setStdDev(double stdDev) {
+		this.stdDev = stdDev;
+	}
+
 	public double getRegimeEnd() {
 		return regimeEnd;
 	}
 
 	@Override
 	public String toString() {
-		return "Mean: " + mean + ", standard deviation: " + stdDev + ", max value: " + regimeEnd;
+		return "m: " + mean + ", sd: " + stdDev + ", end: " + regimeEnd;
 	}
 
 	@Override

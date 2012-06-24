@@ -42,12 +42,12 @@ public class SolverGraph extends DetrenderGraph {
 		}
 		Timer t = new Timer();
 		t.start();
-		Regime[] res = solver.solve(xs, detrendYs);
+		double[] res = solver.solve(xs, detrendYs);
 		t.stop();
 		log.writeln("Elapsed: " + (double) t.getTimeElapsed() / 1000);
 		for (int i = 0; i < res.length - 1; i++) {
-			Regime regime = res[i];
-			charter.addDomainMarker(regime.getRegimeEnd());
+			double regime = res[i];
+			charter.addDomainMarker(regime);
 		}
 		charter.showChart(title, "Time (Days)", "Asset price");
 	}

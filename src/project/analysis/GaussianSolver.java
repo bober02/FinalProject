@@ -11,7 +11,7 @@ import org.apache.commons.math3.distribution.ChiSquaredDistribution;
 import org.apache.commons.math3.stat.descriptive.moment.Variance;
 import org.apache.commons.math3.util.FastMath;
 
-public class BayesianSolver extends AbstractRegimeSolver {
+public class GaussianSolver extends AbstractRegimeSolver {
 
 	private Measures measures;
 	private ChiSquaredDistribution chi;
@@ -20,7 +20,7 @@ public class BayesianSolver extends AbstractRegimeSolver {
 	private Variance rightVariance;
 	private double confidence;
 
-	public BayesianSolver() {
+	public GaussianSolver() {
 		measures = new Measures();
 		leftVariance = new Variance(false);
 		rightVariance = new Variance(false);
@@ -40,12 +40,11 @@ public class BayesianSolver extends AbstractRegimeSolver {
 	}
 
 	@Override
-	public Regime[] solve(double[] xs, double[] ys) {
+	public double[] solve(double[] xs, double[] ys) {
 		if (xs.length != ys.length)
 			throw new IllegalArgumentException("Lengths of data must be the same: XS: " + xs.length + "  Ys: " + ys.length);
 		double L0 = Double.NaN;
 		int length = ys.length;
-
 		// reduce that to just keeping score table; for left simply add to the
 		// score, and right will come later and adds itself
 		double[] logLikelihoods = new double[length];
@@ -63,7 +62,6 @@ public class BayesianSolver extends AbstractRegimeSolver {
 		while (!finish) {
 			int maxMarker = -1;
 			measures.reset();
-
 			int begin = 0;
 			int markerIndex = 0;
 			List<Integer> l = new LinkedList<Integer>();
@@ -119,10 +117,11 @@ public class BayesianSolver extends AbstractRegimeSolver {
 			}
 		}
 		res = Arrays.copyOfRange(res, 0, i);
-		Regime[] result = new Regime[res.length + 1];
+		double[] result = new double[res.length + 1];
 		for (int k = 0; k < res.length; k++)
-			result[k] = new Regime(xs[(int) res[k]]);
-		result[result.length - 1] = new Regime(length);
+			result[k] = xs[(int) res[k]];
+		result[result.length - 1] = xs[length - 1] + 1;
+		Arrays.sort(result);
 		reset();
 		return result;
 	}
@@ -147,7 +146,7 @@ public class BayesianSolver extends AbstractRegimeSolver {
 
 				double L1 = additionalLikelihood + currLikelihood + otherSegmentsLikelihood;
 				double measure = 2 * (L1 - L0);
-				double correctedConfidence = confidence/logLikelihoods.length;
+				double correctedConfidence = confidence / logLikelihoods.length;
 				double pVal = 1 - chi.cumulativeProbability(measure);
 				if (pVal < correctedConfidence) {
 					if (measure > measures.getMaxChiMeasure()) {

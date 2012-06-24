@@ -27,10 +27,10 @@ public class HistogramCharter {
 	private List<XYDataset> functionSets;
 	private HistogramDataset dataset;
 
-	public HistogramCharter() {
+	public HistogramCharter(HistogramType type) {
 		functionSets = new ArrayList<XYDataset>();
 		dataset = new HistogramDataset();
-		dataset.setType(HistogramType.SCALE_AREA_TO_1);
+		dataset.setType(type);
 	}
 
 	public void addHistogram(Comparable<?> name, double[] values, int bins) {
@@ -43,8 +43,8 @@ public class HistogramCharter {
 
 	public void showChart(String title, String xAxis, String yAxis) {
 		JFreeChart chart = ChartFactory.createHistogram(title, xAxis, yAxis, dataset, PlotOrientation.VERTICAL, true, false, false);
+		XYPlot plot = (XYPlot) chart.getPlot();
 		if (!functionSets.isEmpty()) {
-			XYPlot plot = (XYPlot) chart.getPlot();
 			plot.setForegroundAlpha(0.5f);
 			int index = 1;
 			for (XYDataset set : functionSets) {
@@ -52,19 +52,21 @@ public class HistogramCharter {
 				plot.setRenderer(index, new StandardXYItemRenderer());
 				index++;
 			}
-			setRenderingColours(plot);
-			LegendTitle legendTitle = chart.getLegend();
-			legendTitle.setPosition(RectangleEdge.BOTTOM);
-			legendTitle.setItemFont(new Font("Arial", Font.PLAIN, 28));
-
-			Font font = new Font("Arial", Font.PLAIN, 20);
-			plot.getDomainAxis().setTickLabelFont(font);
-			plot.getRangeAxis().setTickLabelFont(font);
-
-			font = new Font("Arial", Font.PLAIN, 24);
-			plot.getDomainAxis().setLabelFont(font);
-			plot.getRangeAxis().setLabelFont(font);
 		}
+		//NumberFormat perc = NumberFormat.getPercentInstance();
+		//((NumberAxis) plot.getDomainAxis()).setNumberFormatOverride(perc);
+		setRenderingColours(plot);
+		LegendTitle legendTitle = chart.getLegend();
+		legendTitle.setPosition(RectangleEdge.BOTTOM);
+		legendTitle.setItemFont(new Font("Arial", Font.PLAIN, 28));
+
+		Font font = new Font("Arial", Font.PLAIN, 20);
+		plot.getDomainAxis().setTickLabelFont(font);
+		plot.getRangeAxis().setTickLabelFont(font);
+
+		font = new Font("Arial", Font.PLAIN, 24);
+		plot.getDomainAxis().setLabelFont(font);
+		plot.getRangeAxis().setLabelFont(font);
 
 		ChartFrame frame = new ChartFrame("Chart window", chart);
 		frame.setSize(1400, 1400);

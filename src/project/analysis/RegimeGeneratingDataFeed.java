@@ -14,7 +14,7 @@ public class RegimeGeneratingDataFeed implements DataFeed {
 	private int index;
 	private int maxRegimes;
 	private boolean randomizeVariance;
-	private Regime[] regimes;
+	private double[] regimes;
 
 	public RegimeGeneratingDataFeed() {
 		this(2);
@@ -24,7 +24,7 @@ public class RegimeGeneratingDataFeed implements DataFeed {
 		this(regimes, (regimes + 1) * 1000);
 	}
 
-	public Regime[] getRegimes() {
+	public double[] getRegimes() {
 		return regimes;
 	}
 
@@ -42,7 +42,7 @@ public class RegimeGeneratingDataFeed implements DataFeed {
 		dataPoints = numPoints;
 		this.randomizeVariance = randomizeVariance;
 		index = 0;
-		this.regimes = new Regime[maxRegimes + 1];
+		this.regimes = new double[maxRegimes + 1];
 	}
 
 	@Override
@@ -55,20 +55,20 @@ public class RegimeGeneratingDataFeed implements DataFeed {
 		double[][] result = new double[dataPoints][2];
 		Random rand = new Random();
 		double mean = rand.nextDouble() * 15;
-		double stdDevLow = 1;
-		double stdDevHigh = 10;
+		double stdDevLow = rand.nextDouble() * 3;
+		double stdDevHigh =  5 + rand.nextDouble() * 5;
 		boolean low = true;
 		double stdDev = stdDevLow;
 		NormalDistribution dist = new NormalDistribution(mean, stdDev);
 		int pointCount = 0;
-		int regimes = 0;
+		int regimeCount = 0;
 		for (; index < dataPoints; index++) {
 			result[index][0] = index;
 			result[index][1] = dist.sample();
 			pointCount++;
-			if (pointCount >= window && regimes < maxRegimes) {
-				this.regimes[regimes] = new Regime(mean, stdDev, (regimes + 1) * window);
-				regimes++;
+			if (pointCount >= window && regimeCount < maxRegimes) {
+				this.regimes[regimeCount] = index;
+				regimeCount++;
 				pointCount = 0;
 				if (low) {
 					mean = rand.nextDouble() * 15;
@@ -90,7 +90,7 @@ public class RegimeGeneratingDataFeed implements DataFeed {
 				low = !low;
 			}
 		}
-		this.regimes[maxRegimes] = new Regime(mean, stdDev, dataPoints);
+		this.regimes[maxRegimes] = dataPoints;
 		return result;
 	}
 
