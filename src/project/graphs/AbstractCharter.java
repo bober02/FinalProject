@@ -27,7 +27,6 @@ public abstract class AbstractCharter implements SeriesCharter {
 	private Set<Marker> domainMarkers;
 	private Set<Marker> rangeMarkers;
 	protected boolean allowDuplicates;
-
 	public AbstractCharter() {
 		domainMarkers = new HashSet<Marker>();
 		rangeMarkers = new HashSet<Marker>();
@@ -51,12 +50,13 @@ public abstract class AbstractCharter implements SeriesCharter {
 
 		// Possibly set that later
 
-		 newMarker.setStroke(stroke);
+		newMarker.setStroke(stroke);
 		newMarker.setPaint(Color.black);
 		if (chart != null) {
 			XYPlot plot = (XYPlot) chart.getPlot();
 			plot.addDomainMarker(newMarker);
-		} else
+		}
+		else
 			domainMarkers.add(newMarker);
 	}
 
@@ -67,7 +67,8 @@ public abstract class AbstractCharter implements SeriesCharter {
 		if (chart != null) {
 			XYPlot plot = (XYPlot) chart.getPlot();
 			plot.addRangeMarker(newMarker);
-		} else
+		}
+		else
 			rangeMarkers.add(newMarker);
 	}
 
@@ -83,7 +84,7 @@ public abstract class AbstractCharter implements SeriesCharter {
 		}
 		setRenderingColours(plot, true);
 		setFonts(plot, RectangleEdge.BOTTOM);
-		
+
 		ChartFrame frame = new ChartFrame("Chart window", chart);
 		frame.setSize(1500, 1400);
 		frame.addWindowListener(new WindowAdapter() {
@@ -98,7 +99,7 @@ public abstract class AbstractCharter implements SeriesCharter {
 	}
 
 	private void setFonts(XYPlot plot, RectangleEdge legendPosition) {
-		
+
 		LegendTitle legendTitle = chart.getLegend();
 		legendTitle.setPosition(legendPosition);
 		legendTitle.setItemFont(new Font("Arial", Font.PLAIN, 28));
@@ -106,7 +107,6 @@ public abstract class AbstractCharter implements SeriesCharter {
 		Font font = new Font("Arial", Font.PLAIN, 20);
 		plot.getDomainAxis().setTickLabelFont(font);
 		plot.getRangeAxis().setTickLabelFont(font);
-
 
 		font = new Font("Arial", Font.PLAIN, 24);
 		plot.getDomainAxis().setLabelFont(font);
@@ -126,7 +126,7 @@ public abstract class AbstractCharter implements SeriesCharter {
 			}
 			for (int i = 0; i < plot.getDataset(index).getSeriesCount(); i++) {
 				renderer.setSeriesPaint(seriesIndex, colours[paintIndex]);
-				if(setBigStroke)
+				if (setBigStroke)
 					renderer.setSeriesStroke(seriesIndex, new BasicStroke(1.2f));
 				seriesIndex++;
 				paintIndex++;

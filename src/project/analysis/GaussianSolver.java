@@ -8,8 +8,16 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.commons.math3.distribution.ChiSquaredDistribution;
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.moment.Variance;
 import org.apache.commons.math3.util.FastMath;
+import org.jfree.data.function.Function2D;
+
+import project.MyGaussian;
+import project.datafeed.DataFeed;
+import project.datafeed.DataFeedException;
+import project.graphs.DoubleSeriesCharter;
+import project.utis.DataUtils;
 
 public class GaussianSolver extends AbstractRegimeSolver {
 
@@ -102,6 +110,7 @@ public class GaussianSolver extends AbstractRegimeSolver {
 				previousLikelihoods.add(maxMarker, measures.getMaxRightLikelihood());
 				previousLikelihoods.add(maxMarker, measures.getMaxLeftLikelihood());
 			}
+			
 		}
 		double[] res = new double[markers.size() - 1];
 		int i = 0;
@@ -170,6 +179,7 @@ public class GaussianSolver extends AbstractRegimeSolver {
 		}
 		return success;
 	}
+	
 
 	private static class Measures {
 		private double maxChiMeasure = Double.MIN_VALUE;

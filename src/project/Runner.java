@@ -19,7 +19,6 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
-import org.jfree.chart.renderer.xy.XYDotRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.function.Function2D;
 import org.jfree.data.function.NormalDistributionFunction2D;
@@ -65,7 +64,7 @@ public class Runner {
 	private DifferenceDetrender differenceDetrender;
 	private LogDifferenceDetrender logDifferenceDetrender;
 
-	private static int MAX_REGIMES = 5;
+	private static int MAX_REGIMES = 7;
 
 	public Runner() {
 		conn = new SQLDatabaseConnection(Tables.DATABASE);
@@ -82,13 +81,78 @@ public class Runner {
 
 	// Here goes all the main logic that would be invoked in the main()
 	public void run() throws DataFeedException {
-		// this.testSyntheticData(100, new StandardDeviationSolver(1000, 0.04),
-		// false, differenceDetrender);
-		// this.testSyntheticData(100, new GaussianSolver(), true);
-		// this.testSyntheticGaussianParameter(100);
-		this.showQQPlots(dfBuilder.forTable(Tables.Corn).includeDays().includeSettle().build(), logDifferenceDetrender);
-		 //showRealDataResults(new GaussianSolver(), logDifferenceDetrender);
+		double[] xs = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+		double[] ys = { 12, 4, 0, 11, 3, 5, 6, 4, 0, 22, 34, 3 };
+		 new StandardDeviationSolver(3, 0.33).solve(xs, ys);
+		// this.testSyntheticData(10000, new StandardDeviationSolver(1000, 0.04),
+		// true, differenceDetrender);
+		 //this.testSyntheticData(1000, new GaussianSolver(), true);
+		 //this.testSyntheticData(10000, new GaussianSolver(), true);
+		 //this.testSyntheticData(10000, new GaussianSolver(), true);
+		 this.testSyntheticGaussianParameter(100);
+		 //this.showQQPlots(dfBuilder.forTable(Tables.SP).includeDays().includeSettle().build(),
+		 //logDifferenceDetrender);
+		//showRealDataResults(new GaussianSolver(), logDifferenceDetrender);
+		// showRealDataResults(new StandardDeviationSolver(500, 0.04),
+		// differenceDetrender);
+		//generateGaussians(dfBuilder.forTable(Tables.Corn).includeDays().includeSettle().build(), 0, 1533, 1533, 4160, 5578);
+		//this.measureSolverSpeed(new StandardDeviationSolver(1000, 0.04), 100000, 200);
+		//this.measureSolverSpeed(new GaussianSolver(), 100000, 5);
+		//this.measureSolverSpeed(new GaussianSolver(), 10000, 200);
+		//this.measureSolverSpeed(new GaussianSolver(), 100000, 100, differenceDetrender);
+		//this.measureSolverSpeed(new GaussianSolver(), 1000000, 20, differenceDetrender);
+		//this.measureSolverSpeed(new GaussianSolver(), 10000000, 10, differenceDetrender);
+		//this.measureSolverSpeedMultipleSeries(new GaussianSolver(), 500, 200);
 	}
+
+	public void generateGaussians(DataFeed df, int beginOld, int endOld, int beginNew, int split, int endNew) throws DataFeedException {
+	Mean mean = new Mean();
+	Variance variance = new Variance(false);
+	DoubleSeriesCharter charter = new DoubleSeriesCharter();
+	double[][] values = DataUtils.transpose(df.getAllValues());
+	double[] xs = values[0];
+	double[] ys = values[1];
+	charter.addSeries("dsa", xs, ys);
+	ys = logDifferenceDetrender.detrend(values[0], ys);
+	for (int i = beginOld; i < endOld; i++) {
+		mean.increment(ys[i]);
+		variance.increment(ys[i]);
+	}
+	double meanVal = mean.getResult();
+	double stdDev = FastMath.sqrt(variance.getResult());
+	Function2D normal1 = new MyGaussian(xs[beginOld] + (xs[endOld] - xs[beginOld]) / 2, stdDev * 10000, 100000);
+	charter.addFunction("Gaussian fit", normal1, xs[beginOld] , xs[endOld], 10000);
+
+	mean.clear();
+	variance.clear();
+	
+	for (int i = beginNew; i < split; i++) {
+		mean.increment(ys[i]);
+		variance.increment(ys[i]);
+	}
+	meanVal = mean.getResult();
+	stdDev = FastMath.sqrt(variance.getResult());
+	double m =xs[beginNew] + ( xs [split] - xs[beginNew])/2;
+	Function2D normal2 = new MyGaussian(m, stdDev * 10000, 100000);
+	charter.addFunction("Gaussian fit 2", normal2, xs[beginNew], xs[split], 10000);
+	
+	mean.clear();
+	variance.clear();
+	
+	for (int i = split; i < endNew; i++) {
+		mean.increment(ys[i]);
+		variance.increment(ys[i]);
+	}
+	meanVal = mean.getResult();
+	stdDev = FastMath.sqrt(variance.getResult());
+	m =xs[split] + ( xs [endNew] - xs[split])/2;
+	Function2D normal3 = new MyGaussian(m, stdDev * 10000, 100000);
+	charter.addFunction("Gaussian fit 2", normal3, xs[split], xs[endNew], 10000);
+	charter.showChart("Gaussian fit under alternative hypothesis", "Time(days)", "Asset price");
+	charter.addDomainMarker(xs[1533]);
+	charter.addDomainMarker(xs[split]);
+}
+
 
 	// ***************************************************** //
 	// ********** TESTS ON REAL AND SYNTHETIC DATA ********* //
@@ -96,7 +160,7 @@ public class Runner {
 
 	public void showRealDataResults(RegimeSolver solver, Detrender... detrenders) throws DataFeedException {
 		for (String table : Tables.getTables()) {
-			DataFeed df = dfBuilder.forTable(table).includeDays().includeSettle().build();
+			DataFeed df = dfBuilder.forTable(Tables.Corn).includeDays().includeSettle().build();
 			SolverGraph graph = new SolverGraph(solver, new DoubleSeriesCharter(), log);
 			for (Detrender d : detrenders) {
 				graph.addDetrender(d);
@@ -231,11 +295,11 @@ public class Runner {
 		log.writeln("Point RMS of std dev estimate: " + Precision.round(FastMath.sqrt(stdDevError / totalPoints), 3));
 		HistogramCharter histogramCharter = new HistogramCharter(HistogramType.RELATIVE_FREQUENCY);
 		histogramCharter.addHistogram("RMS", ArrayUtils.toPrimitive(meanErrors.toArray(new Double[0])), 20);
-		histogramCharter.showChart("Frequency of RMS error of mean for one data point across all trials", "Error", "Relative frequency");
+		histogramCharter.showChart("Average error between true and estimated Gaussian mean", "Error", "Relative frequency");
 		histogramCharter = new HistogramCharter(HistogramType.RELATIVE_FREQUENCY);
 		histogramCharter.addHistogram("RMS", ArrayUtils.toPrimitive(stdDevErrors.toArray(new Double[0])), 20);
-		histogramCharter
-				.showChart("Frequency of RMS error of standard deviation for one data point across all trials", "Error", "Relative frequency");
+		//histogramCharter
+		//		.showChart("Average error between true and estimated Gaussian std dev", "Error", "Relative frequency");
 	}
 
 	private Regime[] constructRegimePoints(double[] xs, double[] ys, double[] regimeEnds) {
@@ -293,8 +357,8 @@ public class Runner {
 			begin = end;
 			index++;
 			quantiles.addSeries(series);
-			JFreeChart chart = ChartFactory.createScatterPlot("QQ plot - segment " + index, "Empirical quantile", "Fit quantile", quantiles, PlotOrientation.VERTICAL, true,
-					true, false);
+			JFreeChart chart = ChartFactory.createScatterPlot("QQ plot - segment " + index, "Empirical quantile", "Fit quantile", quantiles,
+					PlotOrientation.VERTICAL, true, true, false);
 			XYPlot plot = chart.getXYPlot();
 			XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
 			renderer.setSeriesShape(0, ShapeUtilities.createUpTriangle(5));
@@ -311,7 +375,6 @@ public class Runner {
 			frame.setVisible(true);
 		}
 
-		
 	}
 
 	public void showSynteticDataResults(RegimeSolver solver, Detrender... detrenders) {
@@ -353,7 +416,6 @@ public class Runner {
 	}
 
 	public void measureSolverSpeed(RegimeSolver solver, int size, int numTrials, Detrender... detrenders) throws DataFeedException {
-		dataCharter.beginNewPointSeries("Solver speed", false);
 		Timer timer = new Timer();
 		double time = 0;
 		for (int i = 0; i <= numTrials; i++) {

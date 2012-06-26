@@ -2,12 +2,14 @@ package project.graphs;
 
 import java.awt.Font;
 import java.awt.Paint;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartFrame;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
@@ -53,8 +55,8 @@ public class HistogramCharter {
 				index++;
 			}
 		}
-		//NumberFormat perc = NumberFormat.getPercentInstance();
-		//((NumberAxis) plot.getDomainAxis()).setNumberFormatOverride(perc);
+		NumberFormat perc = NumberFormat.getPercentInstance();
+		((NumberAxis) plot.getDomainAxis()).setNumberFormatOverride(perc);
 		setRenderingColours(plot);
 		LegendTitle legendTitle = chart.getLegend();
 		legendTitle.setPosition(RectangleEdge.BOTTOM);

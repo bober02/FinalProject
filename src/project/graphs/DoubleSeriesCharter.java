@@ -1,13 +1,18 @@
 package project.graphs;
 
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
+import org.jfree.data.function.Function2D;
+import org.jfree.data.general.DatasetUtilities;
 import org.jfree.data.xy.DefaultXYDataset;
+import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
@@ -18,11 +23,13 @@ public class DoubleSeriesCharter extends AbstractCharter implements DataSeriesCh
 	private XYSeriesCollection pointSeriesCollection;
 	private XYSeries pointSeries;
 	private DefaultXYDataset matrixDataSet;
+	private List<XYDataset> functionSets;
 
 	public DoubleSeriesCharter() {
 		super();
 		pointSeriesCollection = new XYSeriesCollection();
 		matrixDataSet = new DefaultXYDataset();
+		functionSets = new ArrayList<XYDataset>();
 	}
 
 	@Override
@@ -32,6 +39,10 @@ public class DoubleSeriesCharter extends AbstractCharter implements DataSeriesCh
 		if (isDisplayed())
 			throw new IllegalArgumentException("Cannot modify data while the chart is open!");
 		pointSeries.add(x, y);
+	}
+	
+	public void addFunction(Comparable<?> seriesKey, Function2D f, double start, double end, int samples) {
+		functionSets.add(DatasetUtilities.sampleFunction2D(f, start, end, samples, seriesKey));
 	}
 
 	@Override
@@ -79,7 +90,16 @@ public class DoubleSeriesCharter extends AbstractCharter implements DataSeriesCh
 		} else {
 			chart = ChartFactory.createXYLineChart(title, xAxis, yAxis, matrixDataSet,
 					PlotOrientation.VERTICAL, true, true, false);
-			;
+			XYPlot plot = (XYPlot) chart.getPlot();
+			if (!functionSets.isEmpty()) {
+				plot.setForegroundAlpha(0.5f);
+				int index = 1;
+				for (XYDataset set : functionSets) {
+					plot.setDataset(index, set);
+					plot.setRenderer(index, new StandardXYItemRenderer());
+					index++;
+				}
+			}
 		}
 		return chart;
 	}

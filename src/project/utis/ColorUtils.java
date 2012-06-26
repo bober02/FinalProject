@@ -13,30 +13,30 @@ public class ColorUtils {
 				VERY_LIGHT_YELLOW, VERY_LIGHT_MAGENTA, VERY_LIGHT_CYAN };
 	}
 	
-	private static final Color VERY_DARK_RED = new Color(128, 0, 0);
-	private static final Color DARK_RED = new Color(192, 0, 0);
-	private static final Color LIGHT_RED = new Color(255, 64, 64);
-	private static final Color VERY_LIGHT_RED = new Color(255, 128, 128);
-	private static final Color VERY_DARK_YELLOW = new Color(128, 128, 0);
-	private static final Color DARK_YELLOW = new Color(192, 192, 0);
-	private static final Color LIGHT_YELLOW = new Color(255, 255, 64);
-	private static final Color VERY_LIGHT_YELLOW = new Color(255, 255, 128);
-	private static final Color VERY_DARK_GREEN = new Color(0, 128, 0);
-	private static final Color DARK_GREEN = new Color(0, 192, 0);
-	private static final Color LIGHT_GREEN = new Color(64, 255, 64);
-	private static final Color VERY_LIGHT_GREEN = new Color(128, 255, 128);
-	private static final Color VERY_DARK_CYAN = new Color(0, 128, 128);
-	private static final Color DARK_CYAN = new Color(0, 192, 192);
-	private static final Color LIGHT_CYAN = new Color(64, 255, 255);
-	private static final Color VERY_LIGHT_CYAN = new Color(128, 255, 255);
-	private static final Color VERY_DARK_BLUE = new Color(0, 0, 128);
-	private static final Color DARK_BLUE = new Color(0, 0, 192);
-	private static final Color LIGHT_BLUE = new Color(64, 64, 255);
-	private static final Color VERY_LIGHT_BLUE = new Color(128, 128, 255);
-	private static final Color VERY_DARK_MAGENTA = new Color(128, 0, 128);
-	private static final Color DARK_MAGENTA = new Color(192, 0, 192);
-	private static final Color LIGHT_MAGENTA = new Color(255, 64, 255);
-	private static final Color VERY_LIGHT_MAGENTA = new Color(255, 128, 255);
+	public static final Color VERY_DARK_RED = new Color(128, 0, 0);
+	public static final Color DARK_RED = new Color(192, 0, 0);
+	public static final Color LIGHT_RED = new Color(255, 64, 64);
+	public static final Color VERY_LIGHT_RED = new Color(255, 128, 128);
+	public static final Color VERY_DARK_YELLOW = new Color(128, 128, 0);
+	public static final Color DARK_YELLOW = new Color(192, 192, 0);
+	public static final Color LIGHT_YELLOW = new Color(255, 255, 64);
+	public static final Color VERY_LIGHT_YELLOW = new Color(255, 255, 128);
+	public static final Color VERY_DARK_GREEN = new Color(0, 128, 0);
+	public static final Color DARK_GREEN = new Color(0, 192, 0);
+	public static final Color LIGHT_GREEN = new Color(64, 255, 64);
+	public static final Color VERY_LIGHT_GREEN = new Color(128, 255, 128);
+	public static final Color VERY_DARK_CYAN = new Color(0, 128, 128);
+	public static final Color DARK_CYAN = new Color(0, 192, 192);
+	public static final Color LIGHT_CYAN = new Color(64, 255, 255);
+	public static final Color VERY_LIGHT_CYAN = new Color(128, 255, 255);
+	public static final Color VERY_DARK_BLUE = new Color(0, 0, 128);
+	public static final Color DARK_BLUE = new Color(0, 0, 192);
+	public static final Color LIGHT_BLUE = new Color(64, 64, 255);
+	public static final Color VERY_LIGHT_BLUE = new Color(128, 128, 255);
+	public static final Color VERY_DARK_MAGENTA = new Color(128, 0, 128);
+	public static final Color DARK_MAGENTA = new Color(192, 0, 192);
+	public static final Color LIGHT_MAGENTA = new Color(255, 64, 255);
+	public static final Color VERY_LIGHT_MAGENTA = new Color(255, 128, 255);
 
 
 }

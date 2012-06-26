@@ -44,14 +44,8 @@ public class StandardDeviationSolver extends AbstractRegimeSolver {
 		double[] weights = new double[ys.length];
 		int length = weights.length;
 
-		Integer[] leaders;
 		int leaderSize = (int) (100 / (bucketSize * 100));
-		if (100 % (bucketSize * 100) != 0) {
-			leaders = new Integer[leaderSize + 1];
-		}
-		else {
-			leaders = new Integer[leaderSize];
-		}
+		Integer[] leaders = new Integer[leaderSize];
 		weights[0] = weights[ys.length - 1] = 0;
 		for (int i = ys.length - 1; i > ys.length - 1 - windowSize && i > 0; i--) {
 			variance.increment(ys[i]);
@@ -61,29 +55,29 @@ public class StandardDeviationSolver extends AbstractRegimeSolver {
 		for (int i = 0; i < windowSize && i + 1 < ys.length; i++) {
 			variance.increment(ys[i]);
 			double currentVariance = FastMath.sqrt(variance.getResult());
-			double rightVariance = weights[i + 1];
+			double rightVariance = weights[i];
 			if (rightVariance > 0) {
-				weights[i + 1] = calculateMeasure(currentVariance, rightVariance, i + 1, windowSize - i - 1);
-				updateLeader(i + 1, length, leaders, weights);
+				weights[i] = calculateMeasure(currentVariance, rightVariance, i, windowSize - i);
+				updateLeader(i, length, leaders, weights);
 			}
 			else {
-				weights[i + 1] = currentVariance;
+				weights[i] = currentVariance;
 			}
 		}
 		for (int i = windowSize; i < ys.length - 1; i++) {
 			variance.increment(ys[i]);
 			double currentVariance = FastMath.sqrt(variance.getResult());
-			double index = i + 1;
+			double index = i;
 			if (index > ys.length - 1 - (windowSize + 1)) {
-				double rightVariance = weights[i + 1];
+				double rightVariance = weights[i];
 				if (rightVariance > 0) {
 					// CHANGE
-					weights[i + 1] = calculateMeasure(currentVariance, rightVariance, windowSize, length - i - 2);
-					updateLeader(i + 1, length, leaders, weights);
+					weights[i] = calculateMeasure(currentVariance, rightVariance, windowSize, length - i - 1);
+					updateLeader(i, length, leaders, weights);
 				}
 			}
 			else {
-				weights[i + 1] = currentVariance;
+				weights[i] = currentVariance;
 			}
 			int leftIndex = i - windowSize;
 			double leftVariance = weights[leftIndex];
@@ -98,12 +92,12 @@ public class StandardDeviationSolver extends AbstractRegimeSolver {
 		result[0] = leaders[0];
 		double maxWeight = weights[leaders[0]];
 		int regime = 1;
-		double distanceThreshold = FastMath.max(0.5 * windowSize, 100);
+		double distanceThreshold = FastMath.max(0.6 * windowSize, bucketSize * length);
 		for (int i = 1; i < leaders.length; i++) {
 			int leader = leaders[i];
 			double ratio = weights[leaders[i]] / maxWeight;
 			// we have sorted the leaders, so there is no point to continue
-			if (ratio < 0.5)
+			if (ratio < 0.6)
 				continue;
 			double diff = Double.MAX_VALUE;
 			// compare against all previous regimes
@@ -119,7 +113,7 @@ public class StandardDeviationSolver extends AbstractRegimeSolver {
 		double[] regimeResult = new double[result.length + 1];
 		for (int i = 0; i < result.length; i++)
 			regimeResult[i] = xs[(int) result[i]];
-		regimeResult[regimeResult.length - 1] = xs[length-1] + 1;
+		regimeResult[regimeResult.length - 1] = xs[length - 1] + 1;
 		Arrays.sort(regimeResult);
 		return regimeResult;
 	}
